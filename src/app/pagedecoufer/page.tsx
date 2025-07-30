@@ -28,12 +28,13 @@ export default function ProRegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ salonName, email, phone, message }),
       });
-      router.push('/thank-you'); // Redirect to a thank-you page
+      router.push('/espacecoiffeur'); // Redirect to a thank-you page
     } catch (err) {
       setError('Erreur lors de l’envoi. Veuillez réessayer.');
     }
   };
 
+  
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <div className="w-full md:w-1/2 flex flex-col justify-center px-8 md:px-16 bg-white">
