@@ -1,30 +1,26 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import {
-  CalendarDays,
-  Scissors,
-  Clock,
-  User,
-  Star,
-  Settings,
-  LayoutDashboard,
-  Users,
-  Plus,
-} from 'lucide-react';
+import { CalendarDays, Scissors, Clock, User, Star, Settings, LayoutDashboard, Users, Plus } from 'lucide-react';
 
 export default function EspaceCoiffeur() {
-  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddPopup, setShowAddPopup] = useState(false);
+  const [showAddEmployePopup, setShowAddEmployePopup] = useState(false);
+
   const [prestations, setPrestations] = useState([
     { nom: 'Coupe', prix: 2000 },
     { nom: 'Brushing', prix: 1500 },
     { nom: 'Coloration', prix: 3000 },
   ]);
   const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
+
+  const [employes, setEmployes] = useState([
+    { nom: 'Amina', poste: 'Coloriste' },
+    { nom: 'Yassine', poste: 'Coiffeur homme' },
+  ]);
+  const [newEmploye, setNewEmploye] = useState({ nom: '', poste: '' });
 
   const tabs = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, key: 'dashboard' },
@@ -57,12 +53,15 @@ export default function EspaceCoiffeur() {
     setShowAddPopup(false);
   };
 
+  const handleAddEmploye = () => {
+    if (!newEmploye.nom || !newEmploye.poste) return;
+    setEmployes([...employes, newEmploye]);
+    setNewEmploye({ nom: '', poste: '' });
+    setShowAddEmployePopup(false);
+  };
+
   const handleTabClick = (key: string) => {
-    if (key === 'employes') {
-      router.push('/employe'); // redirige vers la page Employés
-    } else {
-      setActiveTab(key);
-    }
+    setActiveTab(key);
   };
 
   return (
@@ -176,18 +175,14 @@ export default function EspaceCoiffeur() {
                     type="text"
                     placeholder="Nom de la prestation"
                     value={newPrestation.nom}
-                    onChange={(e) =>
-                      setNewPrestation({ ...newPrestation, nom: e.target.value })
-                    }
+                    onChange={(e) => setNewPrestation({ ...newPrestation, nom: e.target.value })}
                     className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
                   />
                   <input
                     type="number"
                     placeholder="Prix"
                     value={newPrestation.prix}
-                    onChange={(e) =>
-                      setNewPrestation({ ...newPrestation, prix: e.target.value })
-                    }
+                    onChange={(e) => setNewPrestation({ ...newPrestation, prix: e.target.value })}
                     className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
                   />
                   <div className="flex justify-end gap-2">
@@ -199,6 +194,68 @@ export default function EspaceCoiffeur() {
                     </button>
                     <button
                       onClick={handleAddPrestation}
+                      className="px-4 py-2 bg-rose-500 text-white rounded-lg"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'employes' && (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-4xl font-bold text-rose-700">Employés</h1>
+              <button
+                onClick={() => setShowAddEmployePopup(true)}
+                className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl shadow"
+              >
+                <Plus size={18} /> Ajouter
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {employes.map((emp, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white p-4 rounded-lg shadow hover:shadow-md transition"
+                >
+                  <h3 className="text-lg font-bold text-gray-800">{emp.nom}</h3>
+                  <p className="text-rose-600 font-semibold">{emp.poste}</p>
+                </div>
+              ))}
+            </div>
+
+            {showAddEmployePopup && (
+              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+                  <h2 className="text-2xl font-bold text-rose-600 mb-4">Ajouter un employé</h2>
+                  <input
+                    type="text"
+                    placeholder="Nom de l'employé"
+                    value={newEmploye.nom}
+                    onChange={(e) => setNewEmploye({ ...newEmploye, nom: e.target.value })}
+                    className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Poste"
+                    value={newEmploye.poste}
+                    onChange={(e) => setNewEmploye({ ...newEmploye, poste: e.target.value })}
+                    className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setShowAddEmployePopup(false)}
+                      className="px-4 py-2 bg-gray-300 rounded-lg"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleAddEmploye}
                       className="px-4 py-2 bg-rose-500 text-white rounded-lg"
                     >
                       Ajouter
