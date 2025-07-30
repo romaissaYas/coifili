@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   CalendarDays,
   Scissors,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 export default function EspaceCoiffeur() {
+  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddPopup, setShowAddPopup] = useState(false);
@@ -55,6 +57,14 @@ export default function EspaceCoiffeur() {
     setShowAddPopup(false);
   };
 
+  const handleTabClick = (key: string) => {
+    if (key === 'employes') {
+      router.push('/employe'); // redirige vers la page Employés
+    } else {
+      setActiveTab(key);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-pink-50 via-rose-100 to-purple-100">
       <aside className="w-64 bg-white border-r shadow-lg p-6 hidden md:block">
@@ -63,7 +73,7 @@ export default function EspaceCoiffeur() {
           {tabs.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => handleTabClick(tab.key)}
               className={`w-full flex items-center px-5 py-3 rounded-xl hover:bg-rose-100 transition text-left text-base font-medium shadow-sm ${
                 activeTab === tab.key ? 'bg-rose-200 text-rose-900 shadow-inner' : 'text-gray-700'
               }`}
@@ -120,7 +130,9 @@ export default function EspaceCoiffeur() {
                 >
                   <div>
                     <p className="text-lg font-semibold text-gray-800">{rdv.client}</p>
-                    <p className="text-sm text-gray-500">{rdv.date} à {rdv.heure}</p>
+                    <p className="text-sm text-gray-500">
+                      {rdv.date} à {rdv.heure}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-600">{rdv.prestation}</p>
@@ -164,14 +176,18 @@ export default function EspaceCoiffeur() {
                     type="text"
                     placeholder="Nom de la prestation"
                     value={newPrestation.nom}
-                    onChange={(e) => setNewPrestation({ ...newPrestation, nom: e.target.value })}
+                    onChange={(e) =>
+                      setNewPrestation({ ...newPrestation, nom: e.target.value })
+                    }
                     className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
                   />
                   <input
                     type="number"
                     placeholder="Prix"
                     value={newPrestation.prix}
-                    onChange={(e) => setNewPrestation({ ...newPrestation, prix: e.target.value })}
+                    onChange={(e) =>
+                      setNewPrestation({ ...newPrestation, prix: e.target.value })
+                    }
                     className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
                   />
                   <div className="flex justify-end gap-2">
