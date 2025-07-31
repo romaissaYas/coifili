@@ -3,6 +3,12 @@ import mysql, { RowDataPacket } from 'mysql2/promise';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import produitsRoutes from './routes/produits'; // ✅ On importe ici
+import prestationsRoutes from './routes/prestations';
+import horairesRoutes from './routes/horraires';
+import employesRoutes from './routes/employes';
+import rendezvousRoutes from './routes/rendezvous';
+
 
 
 
@@ -44,6 +50,7 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
+export { pool };
 
 // Initialize database with retry logic
 async function initializeDb() {
@@ -61,6 +68,52 @@ async function initializeDb() {
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         `);
+          await conn.execute(`
+    CREATE TABLE IF NOT EXISTS produits (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nom VARCHAR(100) NOT NULL,
+      prix DECIMAL(10,2) NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+   await conn.execute(`
+        CREATE TABLE IF NOT EXISTS prestations (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nom VARCHAR(100) NOT NULL,
+          prix DECIMAL(10,2) NOT NULL
+        )
+      `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS employes (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nom VARCHAR(100) NOT NULL,
+          poste VARCHAR(100) NOT NULL
+        )
+      `);
+
+      
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS horraires (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          jour VARCHAR(20) NOT NULL,
+          heure_debut TIME NOT NULL,
+          heure_fin TIME NOT NULL
+        )
+      `);
+
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS rendezvous (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          client_nom VARCHAR(100) NOT NULL,
+          prestation_id INT NOT NULL,
+          date DATE NOT NULL,
+          heure TIME NOT NULL,
+          FOREIGN KEY (prestation_id) REFERENCES prestations(id)
+        )
+      `);
+
         console.log('Database initialized');
       } finally {
         conn.release();
@@ -163,6 +216,11 @@ app.use((err: any, req: Request, res: Response) => {
   console.error('Server error:', err);
   res.status(500).json({ error: 'Erreur serveur' } as ErrorResponse);
 });
+app.use('/api/produits', produitsRoutes);
+app.use('/api/prestations', prestationsRoutes);
+app.use('/api/horaires', horairesRoutes);
+app.use('/api/employes', employesRoutes);
+app.use('/api/rendezvous', rendezvousRoutes);
 
 // Start server
 async function startServer() {
