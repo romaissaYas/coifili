@@ -14,5 +14,15 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM produits');
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Erreur :', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 
 export default router;

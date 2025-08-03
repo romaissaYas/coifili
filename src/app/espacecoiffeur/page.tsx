@@ -8,14 +8,15 @@ import axios from 'axios';
 
 
 export default function EspaceCoiffeur() {
+
+  const [produits, setProduits] = useState([]);
+const [newProduit, setNewProduit] = useState({ nom: '', prix: '' });
+const [showAddProduitPopup, setShowAddProduitPopup] = useState(false);
+
   const [selectedDate, setSelectedDate] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [showAddPopup, setShowAddPopup] = useState(false);
   const [showAddEmployePopup, setShowAddEmployePopup] = useState(false);
-const [produits, setProduits] = useState([
-  { nom: 'Shampoing', prix: 1200 },
-  { nom: 'Sérum cheveux', prix: 2500 },
-]);
+
 type HoraireJour = {
   jour: string;
   ouvert: boolean;
@@ -36,6 +37,32 @@ const joursSemaine = [
   'Samedi',
   'Dimanche',
 ];
+
+
+
+const fetchProduits = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/produits');
+    setProduits(response.data);
+  } catch (error) {
+    console.error('Erreur lors du chargement des produits :', error);
+  }
+};
+
+const handleAddProduit = async () => {
+  try {
+    await axios.post('http://localhost:5000/api/produits', newProduit);
+    setShowAddProduitPopup(false);
+    setNewProduit({ nom: '', prix: '' });
+    fetchProduits(); // recharge la liste
+  } catch (error) {
+    console.error('Erreur lors de l’ajout du produit :', error);
+  }
+};
+useEffect(() => {
+  fetchProduits();
+}, []);
+
 
   const [horaires, setHoraires] = useState<HoraireJour[]>(
     joursSemaine.map((jour) => ({
@@ -81,21 +108,43 @@ const joursSemaine = [
     doc.save('horaires-salon.pdf');
   };
 
-const [newProduit, setNewProduit] = useState({ nom: '', prix: '' });
-const [showAddProduitPopup, setShowAddProduitPopup] = useState(false);
 
-  const [prestations, setPrestations] = useState([
-    { nom: 'Coupe', prix: 2000 },
-    { nom: 'Brushing', prix: 1500 },
-    { nom: 'Coloration', prix: 3000 },
-  ]);
-  const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
+
 
   const [employes, setEmployes] = useState<Employe[]>([]);
   const [popupOpen, setPopupOpen] = useState(false);
   const [nom, setNom] = useState('');
   const [poste, setPoste] = useState('');
   const [message, setMessage] = useState('');
+
+
+useEffect(() => {
+  fetchPrestations();
+}, []);
+
+const fetchPrestations = async () => {
+  try {
+    const response = await axios.get('http://localhost:5000/api/prestations');
+    setPrestations(response.data);
+  } catch (error) {
+    console.error('Erreur lors du chargement des prestations:', error);
+  }
+};
+
+const handleAddPrestation = async () => {
+  try {
+    await axios.post('http://localhost:5000/api/prestations', {
+      nom: newPrestation.nom,
+      prix: Number(newPrestation.prix),
+    });
+    setNewPrestation({ nom: '', prix: '' });
+    setShowAddPopup(false);
+    fetchPrestations();
+  } catch (error) {
+    console.error("Erreur lors de l'ajout :", error);
+  }
+};
+
 
   const fetchEmployes = async () => {
     try {
@@ -137,12 +186,10 @@ const [showAddProduitPopup, setShowAddProduitPopup] = useState(false);
 
     { name: 'Employés', icon: <Users size={20} />, key: 'employes' },
   ];
-const handleAddProduit = () => {
-  if (!newProduit.nom || !newProduit.prix) return;
-  setProduits([...produits, { ...newProduit, prix: Number(newProduit.prix) }]);
-  setNewProduit({ nom: '', prix: '' });
-  setShowAddProduitPopup(false);
-};
+
+const [prestations, setPrestations] = useState([]);
+const [showAddPopup, setShowAddPopup] = useState(false);
+const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
 
   const appointments = [
     { date: '2025-07-27', heure: '10:00', client: 'Sarah', prestation: 'Brushing', montant: 2500 },
@@ -156,13 +203,6 @@ const handleAddProduit = () => {
 
   const revenusParJour = filteredAppointments.reduce((sum, rdv) => sum + rdv.montant, 0);
   const revenusParMois = appointments.reduce((sum, rdv) => sum + rdv.montant, 0);
-
-  const handleAddPrestation = () => {
-    if (!newPrestation.nom || !newPrestation.prix) return;
-    setPrestations([...prestations, { ...newPrestation, prix: Number(newPrestation.prix) }]);
-    setNewPrestation({ nom: '', prix: '' });
-    setShowAddPopup(false);
-  };
 
 
   const handleTabClick = (key: string) => {
@@ -307,68 +347,68 @@ const handleAddProduit = () => {
   </>
 )}
 
+{activeTab === 'prestations' && (
+  <>
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-4xl font-bold text-rose-700">Prestations</h1>
+      <button
+        onClick={() => setShowAddPopup(true)}
+        className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl shadow"
+      >
+        <Plus size={18} /> Ajouter
+      </button>
+    </div>
 
-        {activeTab === 'prestations' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-4xl font-bold text-rose-700">Prestations</h1>
-              <button
-                onClick={() => setShowAddPopup(true)}
-                className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl shadow"
-              >
-                <Plus size={18} /> Ajouter
-              </button>
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {prestations.map((prestation, idx) => (
+        <div
+          key={idx}
+          className="bg-white p-4 rounded-lg shadow hover:shadow-md transition"
+        >
+          <h3 className="text-lg font-bold text-gray-800">{prestation?.nom}</h3>
+          <p className="text-rose-600 font-semibold">{prestation?.prix} DA</p>
+        </div>
+      ))}
+    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {prestations.map((prestation, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white p-4 rounded-lg shadow hover:shadow-md transition"
-                >
-                  <h3 className="text-lg font-bold text-gray-800">{prestation.nom}</h3>
-                  <p className="text-rose-600 font-semibold">{prestation.prix} DA</p>
-                </div>
-              ))}
-            </div>
+    {showAddPopup && (
+      <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+          <h2 className="text-2xl font-bold text-rose-600 mb-4">Ajouter une prestation</h2>
+          <input
+            type="text"
+            placeholder="Nom de la prestation"
+            value={newPrestation.nom}
+            onChange={(e) => setNewPrestation({ ...newPrestation, nom: e.target.value })}
+            className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
+          />
+          <input
+            type="number"
+            placeholder="Prix"
+            value={newPrestation.prix}
+            onChange={(e) => setNewPrestation({ ...newPrestation, prix: e.target.value })}
+            className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setShowAddPopup(false)}
+              className="px-4 py-2 bg-gray-300 rounded-lg"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleAddPrestation}
+              className="px-4 py-2 bg-rose-500 text-white rounded-lg"
+            >
+              Ajouter
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+)}
 
-            {showAddPopup && (
-              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
-                  <h2 className="text-2xl font-bold text-rose-600 mb-4">Ajouter une prestation</h2>
-                  <input
-                    type="text"
-                    placeholder="Nom de la prestation"
-                    value={newPrestation.nom}
-                    onChange={(e) => setNewPrestation({ ...newPrestation, nom: e.target.value })}
-                    className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Prix"
-                    value={newPrestation.prix}
-                    onChange={(e) => setNewPrestation({ ...newPrestation, prix: e.target.value })}
-                    className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setShowAddPopup(false)}
-                      className="px-4 py-2 bg-gray-300 rounded-lg"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={handleAddPrestation}
-                      className="px-4 py-2 bg-rose-500 text-white rounded-lg"
-                    >
-                      Ajouter
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
 
       {activeTab === 'horaires' && (
         <div className="space-y-4">
