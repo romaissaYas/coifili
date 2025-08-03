@@ -14,7 +14,8 @@ import rendezvousRoutes from './routes/rendezvous';
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'simmimi'; // Use env variable
+const JWT_SECRET = process.env.JWT_SECRET || 'simmimi'; 
+// Use env variable
 app.use(express.json());
 app.use(cors({ origin: 'http://localhost:3000' })); // Restrict to frontend origin
 
@@ -212,10 +213,13 @@ app.post('/login', (req, res, next) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: Request, res: Response) => {
+app.use((err: any, req: Request, res: Response, next: Function) => {
   console.error('Server error:', err);
   res.status(500).json({ error: 'Erreur serveur' } as ErrorResponse);
 });
+
+
+
 app.use('/api/produits', produitsRoutes);
 app.use('/api/prestations', prestationsRoutes);
 app.use('/api/horaires', horairesRoutes);

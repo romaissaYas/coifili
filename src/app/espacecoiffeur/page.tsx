@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CalendarDays, Scissors, Clock, User, Star, Settings, LayoutDashboard, Users, Plus } from 'lucide-react';
 import autoTable from 'jspdf-autotable';
 import jsPDF from 'jspdf';
+import axios from 'axios';
+
 
 export default function EspaceCoiffeur() {
   const [selectedDate, setSelectedDate] = useState('');
@@ -20,7 +22,11 @@ type HoraireJour = {
   debut: string;
   fin: string;
 };
-
+type Employe = {
+  id: number;
+  nom: string;
+  poste: string;
+};
 const joursSemaine = [
   'Lundi',
   'Mardi',
@@ -85,11 +91,42 @@ const [showAddProduitPopup, setShowAddProduitPopup] = useState(false);
   ]);
   const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
 
-  const [employes, setEmployes] = useState([
-    { nom: 'Amina', poste: 'Coloriste' },
-    { nom: 'Yassine', poste: 'Coiffeur homme' },
-  ]);
-  const [newEmploye, setNewEmploye] = useState({ nom: '', poste: '' });
+  const [employes, setEmployes] = useState<Employe[]>([]);
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [nom, setNom] = useState('');
+  const [poste, setPoste] = useState('');
+  const [message, setMessage] = useState('');
+
+  const fetchEmployes = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/employes');
+      setEmployes(res.data);
+    } catch (err) {
+      console.error('Erreur de chargement des employés :', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'employes') {
+      fetchEmployes();
+    }
+  }, [activeTab]);
+
+  const handleAddEmploye = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await axios.post('http://localhost:5000/api/employes', { nom, poste });
+      setMessage('Employé ajouté');
+      setNom('');
+      setPoste('');
+      setPopupOpen(false);
+      fetchEmployes();
+    } catch (err) {
+      console.error('Erreur ajout :', err);
+      setMessage('Erreur lors de l’ajout');
+    }
+  };
+
 
   const tabs = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, key: 'dashboard' },
@@ -127,12 +164,6 @@ const handleAddProduit = () => {
     setShowAddPopup(false);
   };
 
-  const handleAddEmploye = () => {
-    if (!newEmploye.nom || !newEmploye.poste) return;
-    setEmployes([...employes, newEmploye]);
-    setNewEmploye({ nom: '', poste: '' });
-    setShowAddEmployePopup(false);
-  };
 
   const handleTabClick = (key: string) => {
     setActiveTab(key);
@@ -437,67 +468,75 @@ const handleAddProduit = () => {
 
         </div>
       )}
-        {activeTab === 'employes' && (
-          <>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-4xl font-bold text-rose-700">Employés</h1>
-              <button
-                onClick={() => setShowAddEmployePopup(true)}
-                className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl shadow"
-              >
-                <Plus size={18} /> Ajouter
-              </button>
-            </div>
+    {activeTab === 'employes' && (
+  <div className="p-6">
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-3xl font-bold text-pink-700">Liste des Employés</h2>
+      <button
+        onClick={() => setPopupOpen(true)}
+        className="bg-pink-600 text-white px-4 py-2 rounded-xl hover:bg-pink-700 flex items-center gap-2 shadow-md"
+      >
+        <Plus size={18} /> Ajouter Employé
+      </button>
+    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {employes.map((emp, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white p-4 rounded-lg shadow hover:shadow-md transition"
-                >
-                  <h3 className="text-lg font-bold text-gray-800">{emp.nom}</h3>
-                  <p className="text-rose-600 font-semibold">{emp.poste}</p>
-                </div>
-              ))}
-            </div>
+    {/* Carte par employé */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {employes.map((emp) => (
+        <div
+          key={emp.id}
+          className="bg-white rounded-xl shadow-lg p-4 border border-gray-100"
+        >
+          <h3 className="text-lg font-semibold text-gray-800">{emp.nom}</h3>
+          <p className="text-pink-600 font-medium mt-1">{emp.poste}</p>
+        </div>
+      ))}
+    </div>
 
-            {showAddEmployePopup && (
-              <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
-                  <h2 className="text-2xl font-bold text-rose-600 mb-4">Ajouter un employé</h2>
-                  <input
-                    type="text"
-                    placeholder="Nom de l'employé"
-                    value={newEmploye.nom}
-                    onChange={(e) => setNewEmploye({ ...newEmploye, nom: e.target.value })}
-                    className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Poste"
-                    value={newEmploye.poste}
-                    onChange={(e) => setNewEmploye({ ...newEmploye, poste: e.target.value })}
-                    className="w-full mb-3 border border-gray-300 rounded-lg px-4 py-2"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setShowAddEmployePopup(false)}
-                      className="px-4 py-2 bg-gray-300 rounded-lg"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={handleAddEmploye}
-                      className="px-4 py-2 bg-rose-500 text-white rounded-lg"
-                    >
-                      Ajouter
-                    </button>
-                  </div>
-                </div>
-              </div>
+    {/* Popup d'ajout */}
+    {popupOpen && (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-xl shadow-2xl w-96 relative">
+          <button
+            onClick={() => setPopupOpen(false)}
+            className="absolute top-2 right-3 text-gray-600 text-2xl"
+          >
+            &times;
+          </button>
+          <h3 className="text-xl font-semibold mb-4 text-pink-700">Ajouter un Employé</h3>
+          <form onSubmit={handleAddEmploye} className="space-y-4">
+            <input
+              type="text"
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              placeholder="Nom"
+              className="border border-gray-300 p-2 w-full rounded"
+              required
+            />
+            <input
+              type="text"
+              value={poste}
+              onChange={(e) => setPoste(e.target.value)}
+              placeholder="Poste"
+              className="border border-gray-300 p-2 w-full rounded"
+              required
+            />
+            <button
+              type="submit"
+              className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700 w-full"
+            >
+              Enregistrer
+            </button>
+            {message && (
+              <p className="text-sm text-green-600 text-center">{message}</p>
             )}
-          </>
-        )}
+          </form>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
       </main>
     </div>
   );
