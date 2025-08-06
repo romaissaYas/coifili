@@ -3,33 +3,61 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Swal from 'sweetalert2';
+
 
 export default function ProRegisterPage() {
   const router = useRouter();
-  const [salonName, setSalonName] = useState('');
+const [nom, setNom] = useState('');
+const [telephone, setTelephone] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+const [wilaya, setWilaya] = useState('');
+const [ville, setVille] = useState('');
+const [categorie, setCategorie] = useState('');
+const [type, setType] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!salonName || !email || !phone) {
+if (!nom || !email || !telephone || !wilaya || !ville || !categorie || !type) {
       setError('Veuillez remplir tous les champs.');
       return;
     }
 
     try {
       // Simulate sending request to sales team (replace with actual API call)
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/contact`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salonName, email, phone, message }),
-      });
-      router.push('/espacecoiffeur'); // Redirect to a thank-you page
+      await fetch(`http://localhost:5000/api/salons`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({
+    nom,
+    email,
+    telephone,
+    message,
+    wilaya,
+    ville,
+    type,
+    categorie,
+  }),
+}); 
+Swal.fire({
+  icon: 'success',
+  title: 'Salon enregistré !',
+  text: 'Votre salon a bien été enregistré.',
+  confirmButtonColor: '#d63384', // rose
+}).then(() => {
+});
+
     } catch (err) {
+      Swal.fire({
+  icon: 'error',
+  title: 'Erreur',
+  text: 'Erreur lors de l’envoi. Veuillez réessayer.',
+  confirmButtonColor: '#d63384',
+});
       setError('Erreur lors de l’envoi. Veuillez réessayer.');
     }
   };
@@ -52,8 +80,8 @@ export default function ProRegisterPage() {
               type="text"
               className="w-full border border-gray-300 rounded px-4 py-2"
               placeholder="Nom de votre salon"
-              value={salonName}
-              onChange={(e) => setSalonName(e.target.value)}
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
               required
             />
           </div>
@@ -80,12 +108,77 @@ export default function ProRegisterPage() {
               type="tel"
               className="w-full border border-gray-300 rounded px-4 py-2"
               placeholder="Votre numéro de téléphone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              value={telephone}
+              onChange={(e) => setTelephone(e.target.value)}
               required
             />
           </div>
+   
           <div>
+  <label className="block mb-1 font-medium" htmlFor="wilaya">
+    Wilaya *
+  </label>
+  <input
+    id="wilaya"
+    type="text"
+    className="w-full border border-gray-300 rounded px-4 py-2"
+    placeholder="Ex : Alger"
+    value={wilaya}
+    onChange={(e) => setWilaya(e.target.value)}
+    required
+  />
+</div>
+
+<div>
+  <label className="block mb-1 font-medium" htmlFor="ville">
+    Ville *
+  </label>
+  <input
+    id="ville"
+    type="text"
+    className="w-full border border-gray-300 rounded px-4 py-2"
+    placeholder="Ex : Bab Ezzouar"
+    value={ville}
+    onChange={(e) => setVille(e.target.value)}
+    required
+  />
+</div>
+
+<div>
+  <label className="block mb-1 font-medium" htmlFor="categorie">
+    Catégorie *
+  </label>
+  <select
+    id="categorie"
+    className="w-full border border-gray-300 rounded px-4 py-2"
+    value={categorie}
+    onChange={(e) => setCategorie(e.target.value)}
+    required
+  >
+    <option value="">Sélectionner une catégorie</option>
+    <option value="institut">Institut</option>
+    <option value="barbier">Barbier</option>
+    <option value="coiffeur">Coiffeur</option>
+  </select>
+</div>
+
+<div>
+  <label className="block mb-1 font-medium" htmlFor="type">
+    Type *
+  </label>
+  <select
+    id="type"
+    className="w-full border border-gray-300 rounded px-4 py-2"
+    value={type}
+    onChange={(e) => setType(e.target.value)}
+    required
+  >
+    <option value="">Sélectionner un type</option>
+    <option value="homme">Homme</option>
+    <option value="femme">Femme</option>
+  </select>
+</div>
+       <div>
             <label className="block mb-1 font-medium" htmlFor="message">
               Message (facultatif)
             </label>
@@ -97,13 +190,21 @@ export default function ProRegisterPage() {
               onChange={(e) => setMessage(e.target.value)}
             />
           </div>
-          <button
-            type="submit"
+<button
+  type="submit"
+  className="w-full bg-pink-600 text-white font-semibold py-2 rounded hover:bg-pink-700 transition"
+>
+  Enregistrer
+</button>
+
+         
+        </form>
+         <button
+             onClick={() => router.push('/espacecoiffeur')}
             className="w-full bg-pink-600 text-white font-semibold py-2 rounded hover:bg-pink-700 transition"
           >
-            Demander une démo
+        allez a l'espace coiffeur 
           </button>
-        </form>
       </div>
       <div
         className="hidden md:block md:w-1/2 bg-cover bg-center"
