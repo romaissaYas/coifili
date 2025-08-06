@@ -8,6 +8,8 @@ import prestationsRoutes from './routes/prestations';
 import horairesRoutes from './routes/horraires';
 import employesRoutes from './routes/employes';
 import rendezvousRoutes from './routes/rendezvous';
+import salonsRoutes from './routes/salons';
+
 
 
 
@@ -96,7 +98,7 @@ async function initializeDb() {
 
       
       await conn.execute(`
-        CREATE TABLE IF NOT EXISTS horraires (
+        CREATE TABLE IF NOT EXISTS horaires (
           id INT AUTO_INCREMENT PRIMARY KEY,
           jour VARCHAR(20) NOT NULL,
           heure_debut TIME NOT NULL,
@@ -114,6 +116,21 @@ async function initializeDb() {
           FOREIGN KEY (prestation_id) REFERENCES prestations(id)
         )
       `);
+await conn.execute(`
+  CREATE TABLE IF NOT EXISTS salons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20) NOT NULL,
+    message TEXT,
+    wilaya VARCHAR(100) NOT NULL,
+    ville VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,       -- Ajout du champ 'type'
+    categorie VARCHAR(50) NOT NULL   -- Ajout du champ 'categorie' (pas de virgule ici)
+  )
+`);
+
+
 
         console.log('Database initialized');
       } finally {
@@ -219,6 +236,7 @@ app.use((err: any, req: Request, res: Response, next: Function) => {
 });
 
 
+app.use('/api/salons', salonsRoutes);
 
 app.use('/api/produits', produitsRoutes);
 app.use('/api/prestations', prestationsRoutes);

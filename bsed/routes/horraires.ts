@@ -16,5 +16,14 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const [rows] = await pool.execute('SELECT * FROM horaires');
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Erreur lors de la récupération des horaires :', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
 
 export default router;

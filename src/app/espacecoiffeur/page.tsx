@@ -76,7 +76,19 @@ useEffect(() => {
 
 
   const [resumeHoraires, setResumeHoraires] = useState<HoraireJour[]>([]);
+useEffect(() => {
+  const fetchHoraires = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/horaires');
+      const data = await response.json();
+      setHoraires(data);
+    } catch (error) {
+      console.error("Erreur lors du chargement des horaires :", error);
+    }
+  };
 
+  fetchHoraires();
+}, []);
   const updateHoraire = (
     index: number,
     field: keyof HoraireJour,
@@ -87,10 +99,6 @@ useEffect(() => {
     setHoraires(updated);
   };
 
-  const enregistrerHoraires = () => {
-    // Enregistre tous les jours, ouverts ou fermés
-    setResumeHoraires(horaires);
-  };
 
   const telechargerPDF = () => {
     const doc = new jsPDF();
@@ -128,6 +136,34 @@ const fetchPrestations = async () => {
     setPrestations(response.data);
   } catch (error) {
     console.error('Erreur lors du chargement des prestations:', error);
+  }
+};
+const enregistrerHoraires = async () => {
+  try {
+    for (const h of horaires) {
+      const response = await fetch('http://localhost:5000/api/horaires', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jour: h.jour,
+          heure_debut: h.debut,
+          heure_fin: h.fin,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        console.error(`Erreur lors de l'enregistrement pour ${h.jour}:`, data);
+        alert(`Erreur lors de l'enregistrement pour ${h.jour}`);
+      }
+    }
+
+    alert('Tous les horaires ont été enregistrés avec succès.');
+  } catch (error) {
+    console.error('Erreur lors de la requête :', error);
+    alert("Une erreur est survenue lors de l'enregistrement.");
   }
 };
 

@@ -15,12 +15,39 @@ const backgrounds = [
   "/img/bg2.jpg",
   "/img/bg3.jpg"
 ]
+interface Salon {
+  id: number;
+  nom: string;
+  email: string;
+  telephone: string;
+  message: string;
+  wilaya: string;
+  ville: string;
+  type: string;
+  categorie: string;
+}
+
 
 export default function Home() {
   const [bgIndex, setBgIndex] = useState(0)
-  const [service, setService] = useState("")
   const [ville, setVille] = useState("")
+  const [categorie, setCategorie] = useState('');
+   const [type, setType] = useState("")
+const [salons, setSalons] = useState<Salon[]>([]);
+
   const router = useRouter()
+// Exemple dans useEffect ou lors d’un clic
+const fetchSalons = async () => {
+  try {
+    const response = await fetch(
+      `http://localhost:5000/api/salons?type=${type}&categorie=${categorie}&wilaya=${wilaya}&ville=${ville}`
+    );
+    const data = await response.json();
+    setSalons(data);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des salons :", error);
+  }
+};
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -28,11 +55,20 @@ export default function Home() {
     }, 5000)
     return () => clearInterval(interval)
   }, [])
+type Wilaya = 'Alger' | 'Oran' | 'Constantine';
 
-  const handleSearch = () => {
-    if (!service || !ville) return
-    router.push(`/recherche?service=${encodeURIComponent(service)}&ville=${encodeURIComponent(ville)}`)
-  }
+  const [wilaya, setWilaya] = useState<Wilaya | ''>('');
+const handleSearch = () => {
+  if (!type && !categorie && !wilaya && !ville) return;
+
+  fetchSalons(); // ➜ récupère les salons et les stocke
+};
+
+const villesParWilaya: Record<Wilaya, string[]> = {
+  Alger: ["El Madania", "Bab El Oued", "Bir Mourad Raïs", "El Harrach", "Birkhadem","bouzareah"],
+  Oran: ["Es Senia", "Bir El Djir", "Hai Sabah"],
+  Constantine: ["El Khroub", "Ali Mendjeli"],
+};
 
   return (
     <>
@@ -102,32 +138,120 @@ export default function Home() {
         <div className="relative z-20 flex flex-col items-center justify-center min-h-screen px-4 text-center pt-32">
           <h1 className="text-white text-4xl md:text-5xl font-bold mb-2">Réservez en beauté</h1>
           <p className="text-white mb-8">Simple • Immédiat • 24h/24</p>
+<div className="bg-white rounded-xl shadow-lg px-4 py-3 flex flex-col md:flex-row gap-3 items-center justify-center max-w-fit mx-auto">
+  {/* Type */}
+  <select
+  value={type}
+  onChange={(e) => setType(e.target.value)}
+  className="px-3 py-2 rounded-md border md:w-32 w-full"
+>
+    <option value="">Type</option>
+    <option value="homme">Homme</option>
+    <option value="femme">Femme</option>
+  </select>
 
-          <div className="bg-white rounded-xl shadow-lg p-4 flex flex-col md:flex-row gap-4 items-center justify-center w-full max-w-2xl">
-            <input
-              type="text"
-              placeholder="Coiffeur, Barbier..."
-              value={service}
-              onChange={(e) => setService(e.target.value)}
-              className="px-4 py-3 rounded-md border w-full md:w-64"
-            />
-            <input
-              type="text"
-              placeholder="Adresse, ville..."
-              value={ville}
-              onChange={(e) => setVille(e.target.value)}
-              className="px-4 py-3 rounded-md border w-full md:w-64"
-            />
-            <button
-              onClick={handleSearch}
-              className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition"
-            >
-              Rechercher
-            </button>
-          </div>
+  {/* Catégorie */}
+  <select
+    value={categorie}
+    onChange={(e) => setCategorie(e.target.value)}
+    className="px-3 py-2 rounded-md border md:w-40 w-full"
+  >
+    <option value="">Catégorie</option>
+    <option value="coiffeur">Coiffeur</option>
+    <option value="institut">Institut</option>
+  </select>
+
+  {/* Wilaya */}
+  <select
+    value={wilaya}
+   onChange={(e) => {
+  setWilaya(e.target.value as Wilaya);
+  setVille("");
+}}
+    className="px-3 py-2 rounded-md border md:w-36 w-full"
+  >
+    <option value="">Wilaya</option>
+    {Object.keys(villesParWilaya).map((w) => (
+      <option key={w} value={w}>{w}</option>
+    ))}
+  </select>
+
+  {/* Ville */}
+  <select
+    value={ville}
+    onChange={(e) => setVille(e.target.value)}
+    className="px-3 py-2 rounded-md border md:w-36 w-full"
+    disabled={!wilaya}
+  >
+    <option value="">Ville</option>
+    {wilaya && villesParWilaya[wilaya]?.map((v) => (
+      <option key={v} value={v}>{v}</option>
+    ))}
+  </select>
+
+  {/* Bouton */}
+  <button
+    onClick={handleSearch}
+    className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition w-full md:w-auto"
+  >
+    Rechercher
+  </button>
+</div>
+
+
+
         </div>
       </div>
 
+{salons.length === 0 ? (
+  <p className="text-center text-gray-500 mt-6">
+    Aucun salon trouvé.
+  </p>
+) : (
+  <section className="mt-10 bg-pink-50 rounded-3xl p-6 shadow-inner border border-gray-200">
+    <h2 className="text-2xl font-bold text-gray-700 mb-6 text-center">
+      Résultats de recherche
+    </h2>
+
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {salons.map((salon) => (
+        <div
+          key={salon.id}
+          className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300 border border-gray-100"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-pink-600">
+              {salon.nom}
+            </h2>
+            <span className="text-sm px-2 py-1 bg-pink-100 text-pink-600 rounded-full">
+              {salon.type}
+            </span>
+          </div>
+
+          <p className="text-gray-700 mb-2">
+            <span className="font-medium">Catégorie:</span> {salon.categorie}
+          </p>
+
+          <p className="text-gray-600 mb-2">
+            📍 {salon.ville}, {salon.wilaya}
+          </p>
+
+          <p className="text-gray-600 mb-2">
+            📞 <span className="font-medium">{salon.telephone}</span>
+          </p>
+
+          {salon.message && (
+            <p className="text-gray-500 italic mt-2">"{salon.message}"</p>
+          )}
+
+          <button className="mt-4 w-full bg-pink-500 text-white py-2 rounded-xl hover:bg-pink-600 transition">
+            Réserver
+          </button>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
 
       <section className="bg-white py-20">
   <div className="max-w-7xl mx-auto px-4">
