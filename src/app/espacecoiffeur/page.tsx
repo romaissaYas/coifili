@@ -5,6 +5,7 @@ import { CalendarDays, Scissors, Clock, User, Star, Settings, LayoutDashboard, U
 import autoTable from 'jspdf-autotable';
 import jsPDF from 'jspdf';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 
 export default function EspaceCoiffeur() {
@@ -54,8 +55,23 @@ const handleAddProduit = async () => {
     await axios.post('http://localhost:5000/api/produits', newProduit);
     setShowAddProduitPopup(false);
     setNewProduit({ nom: '', prix: '' });
-    fetchProduits(); // recharge la liste
+    fetchProduits();
+    Swal.fire({
+      icon: 'success',
+      title: 'Produit ajouté !',
+      text: 'Le produit a bien été ajouté à la liste.',
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  
+    // Afficher la notification d'erreur
+   // recharge la liste
   } catch (error) {
+      Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: "Impossible d'ajouter le produit. Veuillez réessayer.",
+    });
     console.error('Erreur lors de l’ajout du produit :', error);
   }
 };
@@ -176,6 +192,16 @@ const handleAddPrestation = async () => {
     setNewPrestation({ nom: '', prix: '' });
     setShowAddPopup(false);
     fetchPrestations();
+
+    // Petit délai pour laisser le modal se fermer avant d'afficher Swal
+setTimeout(() => {
+  Swal.fire({
+    icon: 'success',
+    title: 'Ajouté !',
+    text: `La prestation "${newPrestation.nom}" a été ajoutée avec succès.`,
+    confirmButtonColor: '#d63384',
+  });
+}, 300);
   } catch (error) {
     console.error("Erreur lors de l'ajout :", error);
   }
@@ -206,7 +232,19 @@ const handleAddPrestation = async () => {
       setPoste('');
       setPopupOpen(false);
       fetchEmployes();
+       Swal.fire({
+      icon: 'success',
+      title: 'Employé ajouté',
+      text: 'L\'employé a bien été ajouté.',
+      timer: 2000,
+      showConfirmButton: false,
+    });
     } catch (err) {
+        Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: 'Erreur lors de l’ajout de l\'employé. Veuillez réessayer.',
+    });
       console.error('Erreur ajout :', err);
       setMessage('Erreur lors de l’ajout');
     }
@@ -218,7 +256,7 @@ const handleAddPrestation = async () => {
     { name: 'Agenda', icon: <CalendarDays size={20} />, key: 'agenda' },
     { name: 'Prestations', icon: <Scissors size={20} />, key: 'prestations' },
     { name: 'Horaires', icon: <Clock size={20} />, key: 'horaires' },
-  { name: 'Produits', icon: <Star size={20} />, key: 'produits' },
+  { name: 'Produits A vendre ', icon: <Star size={20} />, key: 'produits' },
 
     { name: 'Employés', icon: <Users size={20} />, key: 'employes' },
   ];

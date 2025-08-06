@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Swal from 'sweetalert2';
+
 
 type Prestation = {
   id: number;
@@ -32,6 +34,15 @@ export default function PrestationsPage() {
     setShowModal(false);
     setNewNom('');
     setNewPrix('');
+// Petit délai pour laisser le modal se fermer avant d'afficher Swal
+setTimeout(() => {
+  Swal.fire({
+    icon: 'success',
+    title: 'Ajouté !',
+    text: `La prestation "${nouvellePrestation.nom}" a été ajoutée avec succès.`,
+    confirmButtonColor: '#d63384',
+  });
+}, 50990);
   };
 
   return (
@@ -93,6 +104,9 @@ export default function PrestationsPage() {
               >
                 Ajouter
               </button>
+              <button onClick={() => Swal.fire('Test', 'Ça fonctionne bien', 'success')}>
+  Tester Swal
+</button>
             </div>
           </div>
         </div>
