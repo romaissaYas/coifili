@@ -17,10 +17,10 @@ export default function page() {
       
       {/* Bannière */}
       <section
-        className="relative h-[400px] bg-cover bg-center"
+        className="relative h-[400] bg-cover bg-center"
         style={{ backgroundImage: "url('/img/bg8.jpg')" }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-center">
+        <div className="absolute inset-0 bg-opacity-50 flex items-center justify-center text-white text-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Trouvez votre coiffeur</h1>
             <p className="text-lg">Réservez en ligne dans les meilleurs salons de coiffure</p>

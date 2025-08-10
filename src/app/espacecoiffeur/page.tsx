@@ -254,8 +254,9 @@ setTimeout(() => {
   const tabs = [
     { name: 'Dashboard', icon: <LayoutDashboard size={20} />, key: 'dashboard' },
     { name: 'Agenda', icon: <CalendarDays size={20} />, key: 'agenda' },
-    { name: 'Prestations', icon: <Scissors size={20} />, key: 'prestations' },
     { name: 'Horaires', icon: <Clock size={20} />, key: 'horaires' },
+    { name: 'Prestations', icon: <Scissors size={20} />, key: 'prestations' },
+
   { name: 'Produits A vendre ', icon: <Star size={20} />, key: 'produits' },
 
     { name: 'Employés', icon: <Users size={20} />, key: 'employes' },

@@ -126,7 +126,8 @@ await conn.execute(`
     wilaya VARCHAR(100) NOT NULL,
     ville VARCHAR(100) NOT NULL,
     type VARCHAR(50) NOT NULL,       -- Ajout du champ 'type'
-    categorie VARCHAR(50) NOT NULL   -- Ajout du champ 'categorie' (pas de virgule ici)
+    categorie VARCHAR(50) NOT NULL ,
+     image VARCHAR(50) NOT NULL   -- Ajout du champ 'categorie' (pas de virgule ici)
   )
 `);
 
