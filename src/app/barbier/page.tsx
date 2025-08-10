@@ -1,38 +1,79 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
+import Link from "next/link";
 
 export default function BarbierPage() {
-  const [ville, setVille] = useState("")
-  const [resultats, setResultats] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const [ville, setVille] = useState("");
+  const [resultats, setResultats] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const handleSearch = async () => {
-    if (!ville.trim()) return
+    if (!ville.trim()) return;
 
-    setLoading(true)
-    setResultats([])
+    setLoading(true);
+    setResultats([]);
 
     try {
       const res = await fetch(
         `http://localhost:5000/api/salons?categorie=barbier&ville=${encodeURIComponent(ville)}`
-      )
-      if (!res.ok) throw new Error("Erreur serveur")
-      const data = await res.json()
-      setResultats(data) // Exemple: [{ nom, ville, image }]
+      );
+      if (!res.ok) throw new Error("Erreur serveur");
+      const data = await res.json();
+      setResultats(data);
     } catch (err) {
-      console.error("Erreur :", err)
+      console.error("Erreur :", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="bg-white">
+
+      {/* Navigation */}
+      <nav className="bg-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-center">
+          <ul className="flex space-x-12 text-lg font-semibold text-gray-800">
+            <li>
+              <Link href="/coiffeur" className="hover:text-pink-500 transition duration-300">
+                Coiffeur
+              </Link>
+            </li>
+            <li>
+              <Link href="/barbier" className="hover:text-pink-500 transition duration-300">
+                Barbier
+              </Link>
+            </li>
+            <li>
+              <Link href="/manucure" className="hover:text-pink-500 transition duration-300">
+                Manucure
+              </Link>
+            </li>
+            <li>
+              <Link href="/institut" className="hover:text-pink-500 transition duration-300">
+                Institut de Beauté
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </nav>
+   <section
+        className="relative h-[400px] bg-cover bg-center"
+        style={{ backgroundImage: "url('/img/bg8.jpg')" }}
+      >
+        <div className="absolute inset-0 bg-opacity-50 flex items-center justify-center text-white text-center">
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Trouvez votre barbier</h1>
+            <p className="text-lg">
+          Réserver en ligne un RDV avec un barbier
+            </p>
+          </div>
+        </div>
+      </section>
       {/* Barre de recherche */}
       <section className="text-center py-16 bg-gray-100">
         <h1 className="text-4xl font-bold mb-6">
-          Réserver en ligne un RDV avec un barbier
         </h1>
         <div className="max-w-2xl mx-auto flex flex-col md:flex-row gap-4 justify-center items-center">
           <input
@@ -56,7 +97,6 @@ export default function BarbierPage() {
         <h2 className="text-2xl font-semibold mb-6">Résultats</h2>
 
         {loading && <p>Chargement...</p>}
-
         {!loading && resultats.length === 0 && ville && (
           <p>Aucun barbier trouvé.</p>
         )}
@@ -81,5 +121,5 @@ export default function BarbierPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }

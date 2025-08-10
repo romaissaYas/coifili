@@ -1,29 +1,74 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 
-export default function page() {
+export default function CoiffeurPage() {
   const [ville, setVille] = useState("")
-  const router = useRouter()
+  const [resultats, setResultats] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const handleSearch = () => {
-    if (!ville) return
-    router.push(`/recherche?service=coiffeur&ville=${encodeURIComponent(ville)}`)
+  const handleSearch = async () => {
+    if (!ville.trim()) return
+    setLoading(true)
+    setResultats([])
+
+    try {
+      const res = await fetch(
+        `http://localhost:5000/api/salons?categorie=coiffeur&ville=${encodeURIComponent(ville)}`
+      )
+      if (!res.ok) throw new Error("Erreur serveur")
+      const data = await res.json()
+      setResultats(data) // [{ nom, ville, image }]
+    } catch (err) {
+      console.error("Erreur :", err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="bg-white">
-      
+
+      {/* Navigation */}
+      <nav className="bg-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-center">
+          <ul className="flex space-x-12 text-lg font-semibold text-gray-800">
+            <li>
+              <Link href="/coiffeur" className="hover:text-pink-500 transition duration-300">
+                Coiffeur
+              </Link>
+            </li>
+            <li>
+              <Link href="/barbier" className="hover:text-pink-500 transition duration-300">
+                Barbier
+              </Link>
+            </li>
+            <li>
+              <Link href="/manucure" className="hover:text-pink-500 transition duration-300">
+                Manucure
+              </Link>
+            </li>
+            <li>
+              <Link href="/institut" className="hover:text-pink-500 transition duration-300">
+                Institut de Beauté
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
       {/* Bannière */}
       <section
-        className="relative h-[400] bg-cover bg-center"
-        style={{ backgroundImage: "url('/img/bg8.jpg')" }}
+        className="relative h-[400px] bg-cover bg-center"
+        style={{ backgroundImage: "url('/img/bg11.jpg')" }}
       >
         <div className="absolute inset-0 bg-opacity-50 flex items-center justify-center text-white text-center">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Trouvez votre coiffeur</h1>
-            <p className="text-lg">Réservez en ligne dans les meilleurs salons de coiffure</p>
+            <p className="text-lg">
+              Réservez en ligne dans les meilleurs salons de coiffure
+            </p>
           </div>
         </div>
       </section>
@@ -47,34 +92,31 @@ export default function page() {
         </div>
       </section>
 
-      {/* Liste des salons */}
+      {/* Résultats */}
       <section className="max-w-7xl mx-auto px-4 py-12">
-        <h2 className="text-2xl font-bold mb-6">Salons de coiffure populaires</h2>
+        <h2 className="text-2xl font-bold mb-6">Résultats</h2>
+
+        {loading && <p>Chargement...</p>}
+        {!loading && resultats.length === 0 && ville && (
+          <p>Aucun salon de coiffure trouvé.</p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {[
-            {
-              nom: "Salon Chic Hair",
-              ville: "Alger",
-              image: "/img/bg1.jpg"
-            },
-            {
-              nom: "L’Atelier du Coiffeur",
-              ville: "Oran",
-              image: "/img/bg3.jpg"
-            },
-            {
-              nom: "Coiffure Élégance",
-              ville: "Constantine",
-              image: "/img/bg2.jpg"
-            }
-          ].map((salon, i) => (
-            <div key={i} className="bg-white shadow-md rounded-xl overflow-hidden">
-              <img src={salon.image} alt={salon.nom} className="h-48 w-full object-cover" />
+          {resultats.map((salon, i) => (
+            <div
+              key={i}
+              className="bg-white shadow-md rounded-xl overflow-hidden"
+            >
+              <img
+                src={salon.image}
+                alt={salon.nom}
+                className="h-48 w-full object-cover"
+              />
               <div className="p-4">
                 <h3 className="text-xl font-semibold">{salon.nom}</h3>
                 <p className="text-gray-600">{salon.ville}</p>
                 <a
-                  href={`/salon/${i}`}
+                  href={`/salon/${salon.id || i}`}
                   className="mt-2 inline-block text-sm text-pink-600 hover:underline"
                 >
                   Voir le salon
@@ -82,27 +124,6 @@ export default function page() {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* Avantages */}
-      <section className="bg-pink-50 py-16">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-8">Pourquoi choisir RDV Beauty ?</h2>
-          <div className="grid md:grid-cols-3 gap-8 text-left">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Réservation en ligne 24h/24</h3>
-              <p className="text-gray-700">Prenez rendez-vous à tout moment, sans appeler.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Salons certifiés</h3>
-              <p className="text-gray-700">Nous sélectionnons les meilleurs professionnels près de chez vous.</p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Avis clients</h3>
-              <p className="text-gray-700">Lisez les avis pour faire le meilleur choix.</p>
-            </div>
-          </div>
         </div>
       </section>
     </div>
