@@ -238,6 +238,7 @@ app.use((err: any, req: Request, res: Response, next: Function) => {
 
 app.use('/api/salons', salonsRoutes);
 
+
 app.use('/api/produits', produitsRoutes);
 app.use('/api/prestations', prestationsRoutes);
 app.use('/api/horaires', horairesRoutes);

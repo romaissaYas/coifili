@@ -5,6 +5,22 @@ import { pool } from '../serveur';
 const router = express.Router();
 // Route POST pour ajouter un salon
 // Route POST pour ajouter un salon
+router.get("/salons", async (req, res) => {
+  const { service, ville } = req.query;
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT nom AS name, ville, wilaya, type, categorie FROM salons WHERE categorie = ? AND ville LIKE ?",
+      [service, `%${ville}%`]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur serveur" });
+  }
+});
+
+
 router.post('/', async (req: Request, res: Response) => {
   try {
     // Extraction des champs envoyés dans le corps de la requête (ajout de 'type' et 'categorie')
