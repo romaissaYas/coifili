@@ -7,6 +7,16 @@ import jsPDF from 'jspdf';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
+type Creneau = { debut: string; fin: string };
+type HoraireJour = {
+  jour: string;
+  ouvert: boolean;
+  creneaux: Creneau[];
+};
+
+const joursSemaine = [
+  "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
+];
 
 export default function EspaceCoiffeur() {
 
@@ -18,29 +28,66 @@ const [showAddProduitPopup, setShowAddProduitPopup] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAddEmployePopup, setShowAddEmployePopup] = useState(false);
 
-type HoraireJour = {
-  jour: string;
-  ouvert: boolean;
-  debut: string;
-  fin: string;
-};
+
+
+
+
 type Employe = {
   id: number;
   nom: string;
   poste: string;
 };
-const joursSemaine = [
-  'Lundi',
-  'Mardi',
-  'Mercredi',
-  'Jeudi',
-  'Vendredi',
-  'Samedi',
-  'Dimanche',
-];
 
 
+const [horaires, setHoraires] = useState<HoraireJour[]>(
+    joursSemaine.map((jour) => ({
+      jour,
+      ouvert: false,
+      creneaux: [{ debut: "", fin: "" }]
+    }))
+  );
 
+  const toggleOuvert = (jourIndex: number) => {
+    const newHoraires = [...horaires];
+    newHoraires[jourIndex].ouvert = !newHoraires[jourIndex].ouvert;
+    setHoraires(newHoraires);
+  };
+
+  const ajouterCreneau = (jourIndex: number) => {
+    const newHoraires = [...horaires];
+    newHoraires[jourIndex].creneaux.push({ debut: "", fin: "" });
+    setHoraires(newHoraires);
+  };
+
+  const changerCreneau = (
+    jourIndex: number,
+    creneauIndex: number,
+    champ: "debut" | "fin",
+    valeur: string
+  ) => {
+    const newHoraires = [...horaires];
+    newHoraires[jourIndex].creneaux[creneauIndex][champ] = valeur;
+    setHoraires(newHoraires);
+  };
+
+  const enregistrerHoraires = async () => {
+    try {
+      for (const h of horaires) {
+        await fetch("http://localhost:5000/api/horaires", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jour: h.jour,
+            ouvert: h.ouvert,
+            creneaux: h.ouvert ? h.creneaux : []
+          })
+        });
+      }
+      alert("Horaires enregistrés avec succès !");
+    } catch (err) {
+      console.error("Erreur enregistrement horaires :", err);
+    }
+  };
 const fetchProduits = async () => {
   try {
     const response = await axios.get('http://localhost:5000/api/produits');
@@ -80,57 +127,13 @@ useEffect(() => {
 }, []);
 
 
-  const [horaires, setHoraires] = useState<HoraireJour[]>(
-    joursSemaine.map((jour) => ({
-      jour,
-      ouvert: false,
-      debut: '',
-      fin: '',
-    }))
-  );
 
 
 
-  const [resumeHoraires, setResumeHoraires] = useState<HoraireJour[]>([]);
-useEffect(() => {
-  const fetchHoraires = async () => {
-    try {
-      const response = await fetch('http://localhost:5000/api/horaires');
-      const data = await response.json();
-      setHoraires(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement des horaires :", error);
-    }
-  };
-
-  fetchHoraires();
-}, []);
-  const updateHoraire = (
-    index: number,
-    field: keyof HoraireJour,
-    value: string | boolean
-  ) => {
-    const updated = [...horaires];
-    (updated[index] as any)[field] = value;
-    setHoraires(updated);
-  };
 
 
-  const telechargerPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Horaires d'ouverture du salon", 20, 10);
-    const tableData = resumeHoraires.map((h) => [
-      h.jour,
-      h.ouvert ? h.debut : 'Fermé',
-      h.ouvert ? h.fin : 'Fermé',
-    ]);
-    autoTable(doc, {
-      startY: 20,
-      head: [['Jour', 'Début', 'Fin']],
-      body: tableData,
-    });
-    doc.save('horaires-salon.pdf');
-  };
+
+
 
 
 
@@ -154,34 +157,7 @@ const fetchPrestations = async () => {
     console.error('Erreur lors du chargement des prestations:', error);
   }
 };
-const enregistrerHoraires = async () => {
-  try {
-    for (const h of horaires) {
-      const response = await fetch('http://localhost:5000/api/horaires', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jour: h.jour,
-          heure_debut: h.debut,
-          heure_fin: h.fin,
-        }),
-      });
 
-      if (!response.ok) {
-        const data = await response.json();
-        console.error(`Erreur lors de l'enregistrement pour ${h.jour}:`, data);
-        alert(`Erreur lors de l'enregistrement pour ${h.jour}`);
-      }
-    }
-
-    alert('Tous les horaires ont été enregistrés avec succès.');
-  } catch (error) {
-    console.error('Erreur lors de la requête :', error);
-    alert("Une erreur est survenue lors de l'enregistrement.");
-  }
-};
 
 const handleAddPrestation = async () => {
   try {
@@ -207,7 +183,40 @@ setTimeout(() => {
   }
 };
 
+const telechargerPDF = () => {
+  const doc = new jsPDF();
 
+  // Titre
+  doc.setFontSize(18);
+  doc.text("Horaires d'ouverture du salon", 20, 15);
+
+  // Préparer les données du tableau
+  const tableData = horaires.flatMap((h) => {
+    if (!h.ouvert) {
+      return [[h.jour, "Fermé", "Fermé"]];
+    }
+    return h.creneaux.map((c) => [h.jour, c.debut || "-", c.fin || "-"]);
+  });
+
+  // Génération du tableau
+  autoTable(doc, {
+    startY: 25,
+    head: [["Jour", "Début", "Fin"]],
+    body: tableData,
+    styles: {
+      fontSize: 12,
+      halign: "center",
+    },
+    headStyles: {
+      fillColor: [46, 125, 50], // vert
+      textColor: 255,
+    },
+    alternateRowStyles: { fillColor: [240, 240, 240] },
+  });
+
+  // Sauvegarde
+  doc.save("horaires-salon.pdf");
+};
   const fetchEmployes = async () => {
     try {
       const res = await axios.get('http://localhost:5000/api/employes');
@@ -363,6 +372,94 @@ const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
             </div>
           </>
         )}
+           {activeTab === 'horaires' && (
+          <>
+            <h1 className="text-4xl font-bold text-rose-700 mb-6">horraire et crénaux </h1>
+<div className="max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-xl font-sans">
+  
+
+  {horaires.map((h, jourIndex) => (
+    <div
+      key={h.jour}
+      className="bg-gray-50 rounded-xl p-5 mb-5 shadow-sm border border-gray-200"
+    >
+      <label className="flex items-center justify-between">
+        <span className="font-semibold text-lg text-gray-700">{h.jour}</span>
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            checked={h.ouvert}
+            onChange={() => toggleOuvert(jourIndex)}
+            className="w-5 h-5 accent-green-500 cursor-pointer"
+          />
+          <span
+            className={`text-sm font-medium ${
+              h.ouvert ? "text-green-600" : "text-red-500"
+            }`}
+          >
+            {h.ouvert ? "Ouvert" : "Fermé"}
+          </span>
+        </div>
+      </label>
+
+      {h.ouvert && (
+        <div className="mt-4">
+          {h.creneaux.map((c, creneauIndex) => (
+            <div
+              key={creneauIndex}
+              className="flex items-center mb-3 space-x-3"
+            >
+              <input
+                type="time"
+                value={c.debut}
+                onChange={(e) =>
+                  changerCreneau(jourIndex, creneauIndex, "debut", e.target.value)
+                }
+                className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+              />
+              <span className="text-gray-500 font-bold">—</span>
+              <input
+                type="time"
+                value={c.fin}
+                onChange={(e) =>
+                  changerCreneau(jourIndex, creneauIndex, "fin", e.target.value)
+                }
+                className="flex-1 border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none"
+              />
+            </div>
+          ))}
+
+          <button
+            onClick={() => ajouterCreneau(jourIndex)}
+            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition"
+          >
+            + Ajouter créneau
+          </button>
+        </div>
+      )}
+    </div>
+  ))}
+
+  <div className="flex space-x-4 mt-6">
+    <button
+      onClick={enregistrerHoraires}
+      className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold text-lg shadow-md transition"
+    >
+      💾 Enregistrer
+    </button>
+    <button
+      onClick={telechargerPDF}
+      className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-semibold text-lg shadow-md transition"
+    >
+      📄 Télécharger PDF
+    </button>
+  </div>
+</div>
+
+
+
+          </>
+        )}
         {activeTab === 'produits' && (
   <>
     <div className="flex justify-between items-center mb-6">
@@ -485,104 +582,6 @@ const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
 )}
 
 
-      {activeTab === 'horaires' && (
-        <div className="space-y-4">
-          {horaires.map((horaire, index) => (
-            <div
-              key={index}
-              className="bg-white p-4 rounded-xl shadow flex flex-col md:flex-row items-center justify-between gap-4"
-            >
-              <span className="font-semibold text-gray-700 w-32">
-                {horaire.jour}
-              </span>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={horaire.ouvert}
-                  onChange={(e) =>
-                    updateHoraire(index, 'ouvert', e.target.checked)
-                  }
-                />
-                <span>Ouvert</span>
-              </label>
-              <input
-                type="time"
-                disabled={!horaire.ouvert}
-                value={horaire.debut}
-                onChange={(e) =>
-                  updateHoraire(index, 'debut', e.target.value)
-                }
-                className="border rounded-lg px-3 py-1 w-32"
-              />
-              <span className="text-gray-500">à</span>
-              <input
-                type="time"
-                disabled={!horaire.ouvert}
-                value={horaire.fin}
-                onChange={(e) => updateHoraire(index, 'fin', e.target.value)}
-                className="border rounded-lg px-3 py-1 w-32"
-              />
-            </div>
-          ))}
-
-          <div className="mt-4 flex gap-4">
-            <button
-              className="bg-green-600 text-white px-6 py-2 rounded-lg"
-              onClick={enregistrerHoraires}
-            >
-              Enregistrer
-            </button>
-            {resumeHoraires.length > 0 && (
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg"
-                onClick={telechargerPDF}
-              >
-                Télécharger PDF
-              </button>
-            )}
-          </div>
-
-      {resumeHoraires.length > 0 && (
-  <div className="mt-8">
-    <h2 className="text-xl font-semibold mb-4 text-rose-700">
-      🗓️ Récapitulatif des horaires enregistrés
-    </h2>
-    <div className="overflow-x-auto rounded-xl shadow border border-gray-200">
-      <table className="min-w-full bg-white text-sm">
-        <thead className="bg-blue-900 text-white">
-          <tr>
-            <th className="px-4 py-3 text-left font-semibold">Jour</th>
-            <th className="px-4 py-3 text-left font-semibold">Début</th>
-            <th className="px-4 py-3 text-left font-semibold">Fin</th>
-          </tr>
-        </thead>
-        <tbody>
-          {resumeHoraires.map((h, i) => (
-            <tr
-              key={i}
-              className="border-t hover:bg-gray-50 transition-colors"
-            >
-              <td className="px-4 py-3 font-medium text-gray-700">{h.jour}</td>
-              <td className="px-4 py-3 text-gray-600">
-                {h.ouvert ? h.debut : (
-                  <span className="text-red-500 font-semibold">Fermé</span>
-                )}
-              </td>
-              <td className="px-4 py-3 text-gray-600">
-                {h.ouvert ? h.fin : (
-                  <span className="text-red-500 font-semibold">Fermé</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
-
-        </div>
-      )}
     {activeTab === 'employes' && (
   <div className="p-6">
     <div className="flex justify-between items-center mb-6">

@@ -98,14 +98,20 @@ async function initializeDb() {
 
       
       await conn.execute(`
-        CREATE TABLE IF NOT EXISTS horaires (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          jour VARCHAR(20) NOT NULL,
-          heure_debut TIME NOT NULL,
-          heure_fin TIME NOT NULL
-        )
+       CREATE TABLE IF NOT EXISTS horaires (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  jour VARCHAR(20) NOT NULL,
+  ouvert BOOLEAN NOT NULL DEFAULT 0
+);
       `);
-
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS creneaux (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  horaire_id INT NOT NULL,
+  heure_debut TIME NOT NULL,
+  heure_fin TIME NOT NULL,
+  FOREIGN KEY (horaire_id) REFERENCES horaires(id) ON DELETE CASCADE
+);   `);
       await conn.execute(`
         CREATE TABLE IF NOT EXISTS rendezvous (
           id INT AUTO_INCREMENT PRIMARY KEY,
