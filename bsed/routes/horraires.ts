@@ -6,11 +6,10 @@ const router = express.Router();
 router.post('/', async (req: Request, res: Response) => {
   const conn = await pool.getConnection();
   try {
-    const { jour, ouvert, creneaux } = req.body; // [{debut, fin}]
+    const { jour, ouvert, creneaux } = req.body;
 
     await conn.beginTransaction();
 
-    // 1️⃣ Vérifier si ce jour existe déjà
     const [rows]: any = await conn.execute(
       'SELECT id FROM horaires WHERE jour = ?',
       [jour]
@@ -19,16 +18,13 @@ router.post('/', async (req: Request, res: Response) => {
     let horaireId;
 
     if (rows.length > 0) {
-      // 🔹 Si existe → supprimer les anciens créneaux + mettre à jour
       horaireId = rows[0].id;
-
       await conn.execute('DELETE FROM creneaux WHERE horaire_id = ?', [horaireId]);
       await conn.execute('UPDATE horaires SET ouvert = ? WHERE id = ?', [
         ouvert ? 1 : 0,
         horaireId,
       ]);
     } else {
-      // 🔹 Sinon → insérer un nouveau jour
       const [result]: any = await conn.execute(
         'INSERT INTO horaires (jour, ouvert) VALUES (?, ?)',
         [jour, ouvert ? 1 : 0]
@@ -36,7 +32,6 @@ router.post('/', async (req: Request, res: Response) => {
       horaireId = result.insertId;
     }
 
-    // 2️⃣ Réinsérer les créneaux si ouvert
     if (ouvert && Array.isArray(creneaux)) {
       for (const { debut, fin } of creneaux) {
         await conn.execute(
@@ -47,7 +42,6 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     await conn.commit();
-
     res.status(201).json({ message: 'Horaires mis à jour avec succès' });
   } catch (error) {
     await conn.rollback();
@@ -58,14 +52,12 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-
-// Récupérer tous les jours avec leurs créneaux
+// ➕ Récupérer tous les jours avec leurs créneaux
 router.get('/', async (req: Request, res: Response) => {
   try {
     const [jours]: any = await pool.execute('SELECT * FROM horaires');
     const [creneaux]: any = await pool.execute('SELECT * FROM creneaux');
 
-    // Regrouper les créneaux par jour
     const data = jours.map((jour: any) => ({
       ...jour,
       creneaux: creneaux
