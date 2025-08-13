@@ -34,9 +34,16 @@ export default function LoginPage() {
 
       const data = await response.json();
       if (response.ok) {
-        // Store JWT token (e.g., in localStorage)
+        // Store JWT token (e.g., in localStorage) si users rederiger vers site sinon si ciffer rederiger vers espace coiffer 
         localStorage.setItem('token', data.token);
-        router.push('/pageli ydgholalh ki yconicti');
+
+
+
+          if (data.userType === 'coiffeur') {
+    router.push('/pagedecoufer'); // page pour les coiffeurs
+  } else {
+    router.push('/'); // ou `http://localhost:3000` pour les utilisateurs classiques
+  }
       } else {
         setError(data.error || 'Erreur lors de la connexion.');
       }

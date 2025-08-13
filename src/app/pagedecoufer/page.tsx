@@ -18,49 +18,74 @@ const [ville, setVille] = useState('');
 const [categorie, setCategorie] = useState('');
 const [type, setType] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError('');
 
-if (!nom || !email || !telephone || !wilaya || !ville || !categorie || !type) {
-      setError('Veuillez remplir tous les champs.');
+  if (!nom || !email || !telephone || !wilaya || !ville || !categorie || !type) {
+    setError('Veuillez remplir tous les champs.');
+    return;
+  }
+
+  try {
+    // Récupérer le token depuis le localStorage (ou où tu le stockes)
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Vous devez être connecté pour enregistrer un salon.');
       return;
     }
 
-    try {
-      // Simulate sending request to sales team (replace with actual API call)
-      await fetch(`http://localhost:5000/api/salons`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({
-    nom,
-    email,
-    telephone,
-    message,
-    wilaya,
-    ville,
-    type,
-    categorie,
-  }),
-}); 
-Swal.fire({
-  icon: 'success',
-  title: 'Salon enregistré !',
-  text: 'Votre salon a bien été enregistré.',
-  confirmButtonColor: '#d63384', // rose
-}).then(() => {
-});
+    const response = await fetch(`http://localhost:5000/api/salons`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`, // 🔑 on ajoute le token ici
+      },
+      body: JSON.stringify({
+        nom,
+        email,
+        telephone,
+        message,
+        wilaya,
+        ville,
+        type,
+        categorie,
+      }),
+    });
 
-    } catch (err) {
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error || 'Erreur lors de l’envoi. Veuillez réessayer.');
       Swal.fire({
-  icon: 'error',
-  title: 'Erreur',
-  text: 'Erreur lors de l’envoi. Veuillez réessayer.',
-  confirmButtonColor: '#d63384',
-});
-      setError('Erreur lors de l’envoi. Veuillez réessayer.');
+        icon: 'error',
+        title: 'Erreur',
+        text: data.error || 'Erreur lors de l’envoi. Veuillez réessayer.',
+        confirmButtonColor: '#d63384',
+      });
+      return;
     }
-  };
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Salon enregistré !',
+      text: 'Votre salon a bien été enregistré.',
+      confirmButtonColor: '#d63384',
+    }).then(() => {
+      router.push('/espacecoiffeur'); // redirection après succès
+    });
+
+  } catch (err) {
+    console.error(err);
+    setError('Erreur lors de l’envoi. Veuillez réessayer.');
+    Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: 'Erreur lors de l’envoi. Veuillez réessayer.',
+      confirmButtonColor: '#d63384',
+    });
+  }
+};
 
   
   return (

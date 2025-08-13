@@ -161,23 +161,25 @@ const fetchPrestations = async () => {
 
 const handleAddPrestation = async () => {
   try {
+    const nomPrestation = newPrestation.nom; // ✅ Sauvegarde avant de reset
+
     await axios.post('http://localhost:5000/api/prestations', {
-      nom: newPrestation.nom,
+      nom: nomPrestation,
       prix: Number(newPrestation.prix),
     });
+
     setNewPrestation({ nom: '', prix: '' });
     setShowAddPopup(false);
     fetchPrestations();
 
-    // Petit délai pour laisser le modal se fermer avant d'afficher Swal
-setTimeout(() => {
-  Swal.fire({
-    icon: 'success',
-    title: 'Ajouté !',
-    text: `La prestation "${newPrestation.nom}" a été ajoutée avec succès.`,
-    confirmButtonColor: '#d63384',
-  });
-}, 300);
+    setTimeout(() => {
+      Swal.fire({
+        icon: 'success',
+        title: 'Ajouté !',
+        text: `La prestation "${nomPrestation}" a été ajoutée avec succès.`,
+        confirmButtonColor: '#d63384',
+      });
+    }, 300);
   } catch (error) {
     console.error("Erreur lors de l'ajout :", error);
   }
