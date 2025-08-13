@@ -24,7 +24,7 @@ app.use(cors({ origin: 'http://localhost:3000' })); // Restrict to frontend orig
 interface UserData {
   email: string;
   password: string;
-  userType: 'coufer' | 'user';
+  userType: 'coiffeur' | 'user';
 }
 
 interface SuccessResponse {
@@ -63,13 +63,16 @@ async function initializeDb() {
       const conn = await pool.getConnection();
       try {
         await conn.execute(`
-          CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            password VARCHAR(255) NOT NULL,
-            userType ENUM('coufer', 'user') NOT NULL,
-            createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          )
+        CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    firstName VARCHAR(100) NOT NULL,
+    lastName VARCHAR(100) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(20) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    userType ENUM('coiffeur', 'user') NOT NULL, -- coiffeur ou client
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
           await conn.execute(`
     CREATE TABLE IF NOT EXISTS produits (
@@ -126,7 +129,7 @@ async function initializeDb() {
         )
       `);
 await conn.execute(`
-  CREATE TABLE IF NOT EXISTS salons (
+CREATE TABLE IF NOT EXISTS salons (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
@@ -134,10 +137,13 @@ await conn.execute(`
     message TEXT,
     wilaya VARCHAR(100) NOT NULL,
     ville VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,       -- Ajout du champ 'type'
-    categorie VARCHAR(50) NOT NULL ,
-     image VARCHAR(50) NOT NULL   -- Ajout du champ 'categorie' (pas de virgule ici)
-  )
+    type VARCHAR(50) NOT NULL,
+    categorie VARCHAR(50) NOT NULL,
+    image VARCHAR(50) NOT NULL,
+    userId INT NOT NULL, -- 🔗 lien avec l'utilisateur
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
 `);
 
 
@@ -158,44 +164,61 @@ await conn.execute(`
 
 // Route handler type
 type RouteHandler = (req: Request, res: Response) => Promise<void>;
-
-// Register user
-const registerUserHandler: RouteHandler = async (req, res) => {
-  try {
-    const userData = req.body as UserData;
-    const { email, password, userType } = userData;
-
-    if (!email || !password || !userType) {
-      res.status(400).json({ error: 'Email, mot de passe et type d’utilisateur sont requis' } as ErrorResponse);
-      return;
-    }
-
-    if (!['coufer', 'user'].includes(userType)) {
-      res.status(400).json({ error: 'Type d’utilisateur invalide' } as ErrorResponse);
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
+const JWT_EXPIRES_IN = '7d'
+const registerUserHandler = async (req: Request, res: Response): Promise<void> => {
     try {
-      const [result] = await pool.execute(
-        'INSERT INTO users (email, password, userType) VALUES (?, ?, ?)',
-        [email, hashedPassword, userType]
-      );
-      const userId = (result as mysql.OkPacket).insertId;
-      const token = jwt.sign({ userId, userType }, JWT_SECRET, { expiresIn: '1h' });
+        const { firstName, lastName, email, phone, password, userType } = req.body;
 
-      res.status(201).json({ message: 'Utilisateur inscrit avec succès', id: userId, token, userType } as SuccessResponse);
-    } catch (error: any) {
-      if (error.code === 'ER_DUP_ENTRY') {
-        res.status(400).json({ error: 'Cet email est déjà utilisé' } as ErrorResponse);
-      } else {
-        throw error;
-      }
+        // Validation
+        if (!firstName || !lastName || !email || !phone || !password || !userType) {
+            res.status(400).json({ message: 'Tous les champs sont obligatoires.' });
+            return;
+        }
+
+        if (!['coiffeur', 'user'].includes(userType)) {
+            res.status(400).json({ message: 'Type utilisateur invalide.' });
+            return;
+        }
+
+        // Vérifier si l'email existe déjà
+        const [existingUser] = await pool.query(
+            'SELECT id FROM users WHERE email = ?',
+            [email]
+        ) as any[];
+
+        if (existingUser.length > 0) {
+            res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+            return;
+        }
+
+        // Hasher le mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insérer dans la base
+        const [result] = await pool.query(
+            'INSERT INTO users (firstName, lastName, email, phone, password, userType) VALUES (?, ?, ?, ?, ?, ?)',
+            [firstName, lastName, email, phone, hashedPassword, userType]
+        ) as any;
+
+        const userId = result.insertId;
+
+        // Générer le token
+        const token = jwt.sign(
+            { id: userId, email, userType },
+            JWT_SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+
+        res.status(201).json({
+            message: 'Utilisateur créé avec succès.',
+            token,
+            user: { id: userId, firstName, lastName, email, phone, userType }
+        });
+
+    } catch (error) {
+        console.error('Erreur lors de l’inscription :', error);
+        res.status(500).json({ message: 'Erreur serveur.' });
     }
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Erreur serveur' } as ErrorResponse);
-  }
 };
 
 // Login user
@@ -248,6 +271,7 @@ app.use((err: any, req: Request, res: Response, next: Function) => {
 
 app.use('/api/salons', salonsRoutes);
 
+app.post('/register', registerUserHandler);
 
 app.use('/api/produits', produitsRoutes);
 app.use('/api/prestations', prestationsRoutes);

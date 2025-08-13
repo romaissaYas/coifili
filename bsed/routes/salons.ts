@@ -1,6 +1,7 @@
 // routes/salons.ts
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import { pool } from '../serveur';
+import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 // Route POST pour ajouter un salon
@@ -21,26 +22,65 @@ router.get("/salons", async (req, res) => {
 });
 
 
-router.post('/', async (req: Request, res: Response) => {
-  try {
-    // Extraction des champs envoyés dans le corps de la requête (ajout de 'type' et 'categorie')
-    const { nom, email, telephone, message, wilaya, ville, type, categorie } = req.body;
 
-    // Requête SQL : insertion dans la table 'salons' en incluant les nouveaux champs 'type' et 'categorie'
+
+
+interface AuthRequest extends Request {
+  userId?: number;
+}
+
+
+export const authMiddleware = (req: AuthRequest, res: Response, next:NextFunction ) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.status(401).json({ error: 'Token manquant' });
+    return; // ✅ Ne pas retourner une valeur, juste arrêter
+  }
+
+  const token = authHeader.split(' ')[1]; // Bearer <token>
+  if (!token) {
+    res.status(401).json({ error: 'Token invalide' });
+    return;
+  }
+
+  try {
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'simmimi');
+    req.userId = decoded.userId;
+    next(); // ✅ Appeler next() sans rien retourner
+  } catch (err) {
+    res.status(401).json({ error: 'Token invalide ou expiré' });
+  }
+};
+
+router.post('/', authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { nom, email, telephone, message, wilaya, ville, type, categorie } = req.body;
+    const userId = req.userId;
+
+    if (!userId) {
+      res.status(401).json({ error: 'Utilisateur non identifié' });
+      return; // ✅ juste return pour TypeScript
+    }
+
     await pool.execute(
-      `INSERT INTO salons (nom, email, telephone, message, wilaya, ville, type, categorie)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [nom, email, telephone, message, wilaya, ville, type, categorie]
+      `INSERT INTO salons (nom, email, telephone, message, wilaya, ville, type, categorie, userId)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nom, email, telephone, message, wilaya, ville, type, categorie, userId]
     );
 
-    // Envoi d'une réponse de succès
-    res.status(201).json({ message: 'Salon ajouté avec succès' });
+    res.status(201).json({ message: 'Salon ajouté avec succès', userId });
+    return; // ✅ éviter le retour implicite
   } catch (error) {
-    // En cas d'erreur, log de l'erreur dans la console et envoi d'une réponse d'erreur
-    console.error('Erreur :', error);
+    console.error(error);
     res.status(500).json({ error: 'Erreur serveur' });
+    return;
   }
 });
+
+
+
+
+
 
 
 router.get('/', async (req: Request, res: Response) => {
