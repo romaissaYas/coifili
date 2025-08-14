@@ -162,10 +162,80 @@ CREATE TABLE IF NOT EXISTS salons (
   }
 }
 
+
+
+const registerUserHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { firstName, lastName, email, phone, password, userType, salonData } = req.body;
+
+    // Validation de base
+    if (!firstName || !lastName || !email || !phone || !password || !userType) {
+      res.status(400).json({ message: 'Tous les champs sont obligatoires.' });
+      return;
+    }
+
+    if (!['coiffeur', 'user'].includes(userType)) {
+      res.status(400).json({ message: 'Type utilisateur invalide.' });
+      return;
+    }
+
+    // Vérifier si l'email existe déjà
+    const [existingUser] = await pool.query(
+      'SELECT id FROM users WHERE email = ?',
+      [email]
+    ) as any[];
+
+    if (existingUser.length > 0) {
+      res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+      return;
+    }
+
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Créer l'utilisateur
+    const [result] = await pool.query(
+      'INSERT INTO users (firstName, lastName, email, phone, password, userType) VALUES (?, ?, ?, ?, ?, ?)',
+      [firstName, lastName, email, phone, hashedPassword, userType]
+    ) as any;
+
+    const userId = result.insertId;
+
+    // Si c'est un coiffeur, créer le salon
+    if (userType === 'coiffeur') {
+      if (!salonData) {
+        res.status(400).json({ message: 'Les informations du salon sont obligatoires pour un coiffeur.' });
+        return;
+      }
+
+      const { nom, email: salonEmail, telephone, wilaya, ville, type, categorie, image, message } = salonData;
+
+      await pool.query(
+        `INSERT INTO salons (nom, email, telephone, wilaya, ville, type, categorie, image, message, userId)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [nom, salonEmail, telephone, wilaya, ville, type, categorie, image, message, userId]
+      );
+    }
+
+    // Générer le token
+    const token = jwt.sign({ id: userId, email, userType }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    res.status(201).json({
+      message: 'Utilisateur créé avec succès.',
+      token,
+      user: { id: userId, firstName, lastName, email, phone, userType }
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de l’inscription :', error);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
+};
+
 // Route handler type
 type RouteHandler = (req: Request, res: Response) => Promise<void>;
 const JWT_EXPIRES_IN = '7d'
-const registerUserHandler = async (req: Request, res: Response): Promise<void> => {
+const registerUserHandler1 = async (req: Request, res: Response): Promise<void> => {
     try {
         const { firstName, lastName, email, phone, password, userType } = req.body;
 
@@ -221,37 +291,62 @@ const registerUserHandler = async (req: Request, res: Response): Promise<void> =
     }
 };
 
-// Login user
 const loginUserHandler: RouteHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      res.status(400).json({ error: 'Email et mot de passe sont requis' } as ErrorResponse);
+      res.status(400).json({ error: 'Email et mot de passe sont requis' });
       return;
     }
 
-    const [rows] = await pool.execute<User[]>('SELECT * FROM users WHERE email = ?', [email]);
+    // 🔹 Jointure pour récupérer l'ID salon s'il existe
+    const [rows] = await pool.execute<any[]>(
+      `SELECT u.id, u.firstName, u.lastName, u.email, u.password, u.userType, s.id AS salonId
+       FROM users u
+       LEFT JOIN salons s ON s.userId = u.id
+       WHERE u.email = ?`,
+      [email]
+    );
+
     const user = rows[0];
 
     if (!user) {
-      res.status(401).json({ error: 'Utilisateur non trouvé' } as ErrorResponse);
+      res.status(401).json({ error: 'Utilisateur non trouvé' });
       return;
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      res.status(401).json({ error: 'Mot de passe incorrect' } as ErrorResponse);
+      res.status(401).json({ error: 'Mot de passe incorrect' });
       return;
     }
 
-    const token = jwt.sign({ userId: user.id, userType: user.userType }, JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ message: 'Connexion réussie', token, userType: user.userType } as SuccessResponse);
+    const token = jwt.sign(
+      { userId: user.id, userType: user.userType },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Connexion réussie',
+      token,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        userType: user.userType,
+        salonId: user.salonId || null
+      }
+    });
+
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Erreur serveur' } as ErrorResponse);
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 };
+
 
 // Assign routes
 app.post('/register', (req, res, next) => {
