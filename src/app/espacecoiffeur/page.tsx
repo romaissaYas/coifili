@@ -72,11 +72,21 @@ const [horaires, setHoraires] = useState<HoraireJour[]>(
 
   const enregistrerHoraires = async () => {
     try {
+ const userData = localStorage.getItem("user");
+  if (!userData) {
+      alert("Utilisateur non trouvé dans le localStorage !");
+      return;
+    }
+   const user = JSON.parse(userData);
+    const salonId = user.salonId;
+  
+
       for (const h of horaires) {
         await fetch("http://localhost:5000/api/horaires", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            salonId: parseInt(salonId),
             jour: h.jour,
             ouvert: h.ouvert,
             creneaux: h.ouvert ? h.creneaux : []
