@@ -2,8 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import Swal from 'sweetalert2'; // ✅ importer SweetAlert
-
+import Swal from 'sweetalert2';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,10 +10,21 @@ export default function RegisterPage() {
     firstName: '',
     lastName: '',
     email: '',
-    phone: '',            // ✅ ajouté
+    phone: '',
     password: '',
     confirmPassword: '',
     userType: '',
+  });
+  const [salonForm, setSalonForm] = useState({
+    nom: '',
+    email: '',
+    telephone: '',
+    wilaya: '',
+    ville: '',
+    type: '',
+    categorie: '',
+    image: '',
+    message: '',
   });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,61 +33,66 @@ export default function RegisterPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleSalonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setSalonForm({ ...salonForm, [e.target.name]: e.target.value });
+  };
+
   const validate = () => {
     if (Object.values(form).some(v => !v)) return 'Veuillez remplir tous les champs.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Email invalide.';
     if (form.password.length < 6) return 'Le mot de passe doit contenir au moins 6 caractères.';
     if (form.password !== form.confirmPassword) return 'Les mots de passe ne correspondent pas.';
-    if (!['coiffeur', 'user'].includes(form.userType)) return 'Type d’utilisateur invalide.'; // ✅ corrigé "coufer" → "coiffeur"
+    if (!['coiffeur', 'user'].includes(form.userType)) return 'Type d’utilisateur invalide.';
+    // Validation salon si coiffeur
+    if (form.userType === 'coiffeur' && Object.values(salonForm).some(v => !v)) return 'Veuillez remplir tous les champs du salon.';
     return '';
   };
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
 
-  const validationError = validate();
-  if (validationError) {
-    setError(validationError);
-    return;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
 
-  try {
-    const bodyToSend = {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      email: form.email,
-        phone: form.phone, // ✅ ajouté
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
-      password: form.password,
-      userType: form.userType,
-    };
+    try {
+      const bodyToSend = {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        userType: form.userType,
+        salonData: form.userType === 'coiffeur' ? salonForm : undefined
+      };
 
-    const res = await fetch('http://localhost:5000/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bodyToSend),
-    });
+      const res = await fetch('http://localhost:5000/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyToSend),
+      });
 
-    const data = await res.json();
-    if (res.ok) {
-      localStorage.setItem('token', data.token);
-       Swal.fire({
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        Swal.fire({
           icon: 'success',
           title: 'Compte créé avec succès 🎉',
           text: 'Bienvenue sur Coifili !',
           confirmButtonText: 'OK'
         }).then(() => {
-          router.push('/login'); // redirection après confirmation
+          router.push('/login');
         });
-
-    } else {
-      setError(data.error || 'Erreur lors de l’inscription.');
+      } else {
+        setError(data.error || data.message || 'Erreur lors de l’inscription.');
+      }
+    } catch (err) {
+      setError('Erreur serveur. Réessayez plus tard.');
     }
-  } catch (err) {
-    setError('Erreur serveur. Réessayez plus tard.');
-  }
-};
-
+  };
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -85,7 +100,9 @@ const handleSubmit = async (e: React.FormEvent) => {
         <h1 className="text-3xl font-bold mb-6">
           Créez votre compte sur <span className="text-pink-600">Coifili</span>
         </h1>
+
         {error && <div className="text-red-500 mb-4">{error}</div>}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-4">
             <input name="firstName" type="text" placeholder="Prénom *"
@@ -100,7 +117,6 @@ const handleSubmit = async (e: React.FormEvent) => {
             className="w-full border border-gray-300 rounded px-4 py-2"
             value={form.email} onChange={handleChange} />
 
-          {/* ✅ téléphone pris en compte */}
           <input name="phone" type="tel" placeholder="Téléphone *"
             className="w-full border border-gray-300 rounded px-4 py-2"
             value={form.phone} onChange={handleChange} />
@@ -127,8 +143,25 @@ const handleSubmit = async (e: React.FormEvent) => {
             value={form.userType} onChange={handleChange}>
             <option value="">Sélectionnez un type *</option>
             <option value="user">Utilisateur</option>
-            <option value="coiffeur">Coiffeur</option> {/* ✅ corrigé */}
+            <option value="coiffeur">Coiffeur</option>
           </select>
+
+          {/* Formulaire salon pour coiffeur */}
+          {form.userType === 'coiffeur' && (
+            <div className="mt-4 p-4 border rounded">
+              <h2 className="text-xl font-bold mb-2">Informations du salon</h2>
+
+              <input name="nom" placeholder="Nom du salon *" value={salonForm.nom} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="email" placeholder="Email du salon *" value={salonForm.email} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="telephone" placeholder="Téléphone du salon *" value={salonForm.telephone} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="wilaya" placeholder="Wilaya *" value={salonForm.wilaya} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="ville" placeholder="Ville *" value={salonForm.ville} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="type" placeholder="Type *" value={salonForm.type} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="categorie" placeholder="Catégorie *" value={salonForm.categorie} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="image" placeholder="Image *" value={salonForm.image} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <input name="message" placeholder="Message" value={salonForm.message} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+            </div>
+          )}
 
           <button type="submit"
             className="w-full bg-pink-600 text-white font-semibold py-2 rounded hover:bg-pink-700 transition">

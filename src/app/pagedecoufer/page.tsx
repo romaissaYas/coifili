@@ -72,7 +72,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       text: 'Votre salon a bien été enregistré.',
       confirmButtonColor: '#d63384',
     }).then(() => {
-      router.push('/espacecoiffeur'); // redirection après succès
+      router.push('/login'); // redirection après succès
     });
 
   } catch (err) {

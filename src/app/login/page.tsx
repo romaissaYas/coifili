@@ -36,14 +36,16 @@ export default function LoginPage() {
       if (response.ok) {
         // Store JWT token (e.g., in localStorage) si users rederiger vers site sinon si ciffer rederiger vers espace coiffer 
         localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
 
 
 
-          if (data.userType === 'coiffeur') {
-    router.push('/pagedecoufer'); // page pour les coiffeurs
-  } else {
-    router.push('/'); // ou `http://localhost:3000` pour les utilisateurs classiques
-  }
+          if (data.user.userType === 'coiffeur') {
+              router.push('/espacecoiffeur'); // page pour les coiffeurs
+               } else {
+
+                  router.push('/'); // ou `http://localhost:3000` pour les utilisateurs classiques
+                  }
       } else {
         setError(data.error || 'Erreur lors de la connexion.');
       }
@@ -61,7 +63,7 @@ export default function LoginPage() {
       {/* Partie gauche */}
       <div className="w-full md:w-1/2 flex flex-col justify-center px-8 md:px-16 bg-white">
         <h1 className="text-3xl font-bold mb-6">
-          Bienvenue sur <span className="text-pink-600">Coifili</span>
+          Bienvenue sur  ***<span className="text-pink-600">Coifili</span>
         </h1>
         {error && <div className="text-red-500 mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -290,15 +290,42 @@ const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
   const revenusParJour = filteredAppointments.reduce((sum, rdv) => sum + rdv.montant, 0);
   const revenusParMois = appointments.reduce((sum, rdv) => sum + rdv.montant, 0);
 
+  const [user, setUser] = useState<any>(null);
+
+ useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+  console.log("Valeur brute localStorage:", storedUser);
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   const handleTabClick = (key: string) => {
     setActiveTab(key);
   };
 
+    if (!user) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-100">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-pink-50 via-rose-100 to-purple-100">
       <aside className="w-64 bg-white border-r shadow-lg p-6 hidden md:block">
         <h2 className="text-3xl font-extrabold text-rose-600 mb-8 tracking-tight">Espace Coiffeur</h2>
+ <h1 className="text-2xl font-bold mb-4">
+          Bienvenue {user.firstName} {user.lastName} 👋
+        </h1>
+        <p className="text-gray-700">
+          <strong>ID Salon :</strong> {user.salonId}
+        </p>
         <nav className="space-y-3">
           {tabs.map((tab) => (
             <button
@@ -315,11 +342,12 @@ const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
       </aside>
 
       <main className="flex-1 p-10">
+
         {activeTab === 'dashboard' && (
           <>
             <h1 className="text-4xl font-bold text-rose-700 mb-8">Tableau de bord</h1>
             <div className="mb-6">
-              <label className="block text-gray-600 font-medium mb-2">Sélectionner une date :</label>
+              <label className="block text-gray-600 font-medium mb-2">Sélectionner une date {user.salonId} :</label>
               <input
                 type="date"
                 value={selectedDate}
