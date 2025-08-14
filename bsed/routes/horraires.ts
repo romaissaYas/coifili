@@ -3,16 +3,22 @@ import { pool } from '../serveur';
 
 const router = express.Router();
 
-router.post('/', async (req: Request, res: Response) => {
+// ➕ Ajouter ou mettre à jour un horaire avec salon_id
+router.post('/', async (req: Request, res: Response): Promise<void> => {
   const conn = await pool.getConnection();
   try {
-    const { jour, ouvert, creneaux } = req.body;
+    const { jour, ouvert, creneaux, salonId } = req.body;
+
+    if (!salonId) {
+      res.status(400).json({ error: 'salon_id est requis' });
+      return;
+    }
 
     await conn.beginTransaction();
 
     const [rows]: any = await conn.execute(
-      'SELECT id FROM horaires WHERE jour = ?',
-      [jour]
+      'SELECT id FROM horaires WHERE jour = ? AND salon_id = ?',
+      [jour, salonId]
     );
 
     let horaireId;
@@ -26,8 +32,8 @@ router.post('/', async (req: Request, res: Response) => {
       ]);
     } else {
       const [result]: any = await conn.execute(
-        'INSERT INTO horaires (jour, ouvert) VALUES (?, ?)',
-        [jour, ouvert ? 1 : 0]
+        'INSERT INTO horaires (jour, ouvert, salon_id) VALUES (?, ?, ?)',
+        [jour, ouvert ? 1 : 0, salonId]
       );
       horaireId = result.insertId;
     }
@@ -52,11 +58,15 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// ➕ Récupérer tous les jours avec leurs créneaux
-router.get('/', async (req: Request, res: Response) => {
+// ➕ Récupérer tous les jours avec leurs créneaux pour un salon
+router.get('/:salon_id', async (req: Request, res: Response) => {
   try {
-    const [jours]: any = await pool.execute('SELECT * FROM horaires');
-    const [creneaux]: any = await pool.execute('SELECT * FROM creneaux');
+    const { salon_id } = req.params;
+    const [jours]: any = await pool.execute('SELECT * FROM horaires WHERE salon_id = ?', [salon_id]);
+    const [creneaux]: any = await pool.execute(
+      `SELECT * FROM creneaux WHERE horaire_id IN (?)`,
+      [jours.map((j: any) => j.id)]
+    );
 
     const data = jours.map((jour: any) => ({
       ...jour,

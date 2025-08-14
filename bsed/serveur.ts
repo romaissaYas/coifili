@@ -62,7 +62,7 @@ async function initializeDb() {
     try {
       const conn = await pool.getConnection();
       try {
-        await conn.execute(`
+         await conn.execute(`
         CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     firstName VARCHAR(100) NOT NULL,
@@ -74,6 +74,50 @@ async function initializeDb() {
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
+    await conn.execute(`
+CREATE TABLE IF NOT EXISTS salons (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    telephone VARCHAR(20) NOT NULL,
+    message TEXT,
+    wilaya VARCHAR(100) NOT NULL,
+    ville VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    categorie VARCHAR(50) NOT NULL,
+    image VARCHAR(50) NOT NULL,
+    userId INT NOT NULL, -- 🔗 lien avec l'utilisateur
+    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+);
+
+`);
+
+
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS horaires (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    salon_id INT NOT NULL, -- 🔗 lien avec le salon
+    jour VARCHAR(20) NOT NULL,
+    ouvert TINYINT(1) NOT NULL DEFAULT 0,
+    FOREIGN KEY (salon_id) REFERENCES salons(id) ON DELETE CASCADE
+  );
+    `);
+
+
+    // Table creneaux
+    await conn.execute(`
+      CREATE TABLE IF NOT EXISTS creneaux (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        horaire_id INT NOT NULL,
+        heure_debut TIME NOT NULL,
+        heure_fin TIME NOT NULL,
+        FOREIGN KEY (horaire_id) REFERENCES horaires(id) ON DELETE CASCADE
+      );
+    `);
+
+
+
+
           await conn.execute(`
     CREATE TABLE IF NOT EXISTS produits (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -100,24 +144,7 @@ async function initializeDb() {
       `);
 
       
-    await conn.execute(`
-      CREATE TABLE IF NOT EXISTS horaires (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        jour VARCHAR(20) NOT NULL,
-        ouvert TINYINT(1) NOT NULL DEFAULT 0
-      );
-    `);
 
-    // Table creneaux
-    await conn.execute(`
-      CREATE TABLE IF NOT EXISTS creneaux (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        horaire_id INT NOT NULL,
-        heure_debut TIME NOT NULL,
-        heure_fin TIME NOT NULL,
-        FOREIGN KEY (horaire_id) REFERENCES horaires(id) ON DELETE CASCADE
-      );
-    `);
       await conn.execute(`
         CREATE TABLE IF NOT EXISTS rendezvous (
           id INT AUTO_INCREMENT PRIMARY KEY,
@@ -128,23 +155,7 @@ async function initializeDb() {
           FOREIGN KEY (prestation_id) REFERENCES prestations(id)
         )
       `);
-await conn.execute(`
-CREATE TABLE IF NOT EXISTS salons (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    telephone VARCHAR(20) NOT NULL,
-    message TEXT,
-    wilaya VARCHAR(100) NOT NULL,
-    ville VARCHAR(100) NOT NULL,
-    type VARCHAR(50) NOT NULL,
-    categorie VARCHAR(50) NOT NULL,
-    image VARCHAR(50) NOT NULL,
-    userId INT NOT NULL, -- 🔗 lien avec l'utilisateur
-    FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-);
-
-`);
+     
 
 
 
