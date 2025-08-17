@@ -15,13 +15,26 @@ router.get('/', async (_req: Request, res: Response) => {
 });
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { nom, poste } = req.body;
-    await pool.execute('INSERT INTO employes (nom, poste) VALUES (?, ?)', [nom, poste]);
-    res.status(201).json({ message: 'Employé ajouté avec succès' });
-  } catch (error) {
+    const { nom, poste, salonId } = req.body as {
+      nom?: string;
+      poste?: string;
+      salonId?: number;
+    };
+
+    const sql = 'INSERT INTO employes (nom, poste, salon_id) VALUES (?, ?, ?)';
+await pool.execute(sql, [nom, poste, salonId]);
+
+    res.status(201).json({ message: 'Employé ajouté avec succès' });  } catch (error) {
     console.error('Erreur :', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
+
+
+
+
+
+
+
 
 export default router;

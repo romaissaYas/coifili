@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 
+
 type Creneau = { debut: string; fin: string };
 type HoraireJour = {
   jour: string;
@@ -19,9 +20,16 @@ const joursSemaine = [
 ];
 
 export default function EspaceCoiffeur() {
+ const userData = localStorage.getItem("user");
+  if (!userData) {
+      alert("Utilisateur non trouvé dans le localStorage !");
+      return;
+    }
+   const user1 = JSON.parse(userData);
 
+    const salonId = user1.salonId;
   const [produits, setProduits] = useState([]);
-const [newProduit, setNewProduit] = useState({ nom: '', prix: '' });
+const [newProduit, setNewProduit] = useState({ nom: '', prix: '',salon_id: salonId });
 const [showAddProduitPopup, setShowAddProduitPopup] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState('');
@@ -93,9 +101,24 @@ const [horaires, setHoraires] = useState<HoraireJour[]>(
           })
         });
       }
-      alert("Horaires enregistrés avec succès !");
+
+
+  Swal.fire({
+      icon: "success",
+      title: "Succès",
+      text: "Horaires enregistrés avec succès !",
+      timer: 2000,
+      showConfirmButton: true,
+    });
+
+
     } catch (err) {
       console.error("Erreur enregistrement horaires :", err);
+       Swal.fire({
+      icon: "error",
+      title: "Erreur",
+      text: "Une erreur est survenue lors de l'enregistrement des horaires.",
+    });
     }
   };
 const fetchProduits = async () => {
@@ -111,7 +134,14 @@ const handleAddProduit = async () => {
   try {
     await axios.post('http://localhost:5000/api/produits', newProduit);
     setShowAddProduitPopup(false);
-    setNewProduit({ nom: '', prix: '' });
+    const userData = localStorage.getItem("user");
+  if (!userData) {
+      alert("Utilisateur non trouvé dans le localStorage !");
+      return;
+    }
+   const user = JSON.parse(userData);
+    const salonId = user.salonId;
+    setNewProduit({ nom: '', prix: '' ,salon_id:  salonId });
     fetchProduits();
     Swal.fire({
       icon: 'success',
@@ -171,29 +201,41 @@ const fetchPrestations = async () => {
 
 const handleAddPrestation = async () => {
   try {
-    const nomPrestation = newPrestation.nom; // ✅ Sauvegarde avant de reset
+    if (!user) {
+      alert("Utilisateur non trouvé !");
+      return;
+    }
 
-    await axios.post('http://localhost:5000/api/prestations', {
-      nom: nomPrestation,
+    const prestationData = {
+      nom: newPrestation.nom,
       prix: Number(newPrestation.prix),
-    });
+      salonId: user.salonId, // indispensable pour relier la prestation au salon
+    };
 
-    setNewPrestation({ nom: '', prix: '' });
+    await axios.post('http://localhost:5000/api/prestations', prestationData);
+
+    // Reset formulaire
+    setNewPrestation({ nom: '', prix: '', salonId: user.salonId });
     setShowAddPopup(false);
     fetchPrestations();
 
-    setTimeout(() => {
-      Swal.fire({
-        icon: 'success',
-        title: 'Ajouté !',
-        text: `La prestation "${nomPrestation}" a été ajoutée avec succès.`,
-        confirmButtonColor: '#d63384',
-      });
-    }, 300);
+    Swal.fire({
+      icon: 'success',
+      title: 'Ajouté !',
+      text: `La prestation "${prestationData.nom}" a été ajoutée.`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
   } catch (error) {
-    console.error("Erreur lors de l'ajout :", error);
+    console.error("Erreur lors de l'ajout de la prestation :", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Erreur',
+      text: "Impossible d'ajouter la prestation.",
+    });
   }
 };
+
 
 const telechargerPDF = () => {
   const doc = new jsPDF();
@@ -247,7 +289,7 @@ const telechargerPDF = () => {
   const handleAddEmploye = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/employes', { nom, poste });
+      await axios.post('http://localhost:5000/api/employes', { nom, poste ,salonId:salonId});
       setMessage('Employé ajouté');
       setNom('');
       setPoste('');
@@ -285,7 +327,7 @@ const telechargerPDF = () => {
 
 const [prestations, setPrestations] = useState([]);
 const [showAddPopup, setShowAddPopup] = useState(false);
-const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' });
+const [newPrestation, setNewPrestation] = useState({ nom: '', prix: '' , salonId:salonId});
 
   const appointments = [
     { date: '2025-07-27', heure: '10:00', client: 'Sarah', prestation: 'Brushing', montant: 2500 },

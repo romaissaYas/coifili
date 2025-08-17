@@ -120,28 +120,33 @@ CREATE TABLE IF NOT EXISTS salons (
 
           await conn.execute(`
     CREATE TABLE IF NOT EXISTS produits (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      nom VARCHAR(100) NOT NULL,
-      prix DECIMAL(10,2) NOT NULL,
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    prix DECIMAL(10,2) NOT NULL,
+    salon_id INT NOT NULL, 
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (salon_id) REFERENCES salons(id) ON DELETE CASCADE
+  )
   `);
+await conn.execute(`
+  CREATE TABLE IF NOT EXISTS prestations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    prix DECIMAL(10,2) NOT NULL,
+    salon_id INT NOT NULL,
+    FOREIGN KEY (salon_id) REFERENCES salons(id) ON DELETE CASCADE
+  )
+`);
 
-   await conn.execute(`
-        CREATE TABLE IF NOT EXISTS prestations (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          nom VARCHAR(100) NOT NULL,
-          prix DECIMAL(10,2) NOT NULL
-        )
-      `);
-
-      await conn.execute(`
-        CREATE TABLE IF NOT EXISTS employes (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          nom VARCHAR(100) NOT NULL,
-          poste VARCHAR(100) NOT NULL
-        )
-      `);
+await conn.execute(`
+  CREATE TABLE IF NOT EXISTS employes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    poste VARCHAR(100) NOT NULL,
+    salon_id INT NOT NULL,
+    FOREIGN KEY (salon_id) REFERENCES salons(id) ON DELETE CASCADE
+  )
+`);
 
       
 
