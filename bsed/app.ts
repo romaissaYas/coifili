@@ -22,6 +22,7 @@ import subscriptionsRoutes from './routes/subscriptions';
 import reservationsRoutes from './routes/reservations';
 import uploadsRoutes from './routes/uploads';
 import notificationsRoutes from './routes/notifications';
+import docsRoutes from './routes/docs';
 
 /**
  * Construit et configure l'application Express (sans l'écouter). Isolé de
@@ -83,6 +84,9 @@ app.get('/health', async (_req: Request, res: Response) => {
 // /register et /login sont montées à la racine (pas sous /api), pour
 // préserver les chemins consommés tels quels par le frontend.
 app.use('/', authRoutes);
+
+// Documentation de l'API (publique, non limitée) : montée avant le rate limiter.
+app.use('/api', docsRoutes);
 
 // Garde-fou de débit sur l'ensemble des routes /api (souple).
 app.use('/api', apiLimiter);

@@ -6,11 +6,11 @@ export default function PublicFooter() {
         <div>
           <h2 className="mb-4 text-2xl font-bold tracking-wider">Coifili</h2>
           <div className="flex space-x-4">
-            <a href="#" className="rounded bg-white p-2 text-black">
-              <i className="fab fa-facebook-f"></i>
+            <a href="#" aria-label="Coifili sur Facebook" className="rounded bg-white p-2 text-black">
+              <i className="fab fa-facebook-f" aria-hidden="true"></i>
             </a>
-            <a href="#" className="rounded bg-white p-2 text-black">
-              <i className="fab fa-instagram"></i>
+            <a href="#" aria-label="Coifili sur Instagram" className="rounded bg-white p-2 text-black">
+              <i className="fab fa-instagram" aria-hidden="true"></i>
             </a>
           </div>
         </div>

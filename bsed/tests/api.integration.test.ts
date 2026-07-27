@@ -64,3 +64,20 @@ describe('Authentification requise', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('Documentation OpenAPI (publique)', () => {
+  it('GET /api/docs.json → 200 spec OpenAPI valide', async () => {
+    const res = await request(app).get('/api/docs.json');
+    expect(res.status).toBe(200);
+    expect(res.body.openapi).toMatch(/^3\./);
+    expect(res.body.info?.title).toBe('Coifili API');
+    expect(res.body.paths).toHaveProperty('/health');
+  });
+
+  it('GET /api/docs → 200 HTML', async () => {
+    const res = await request(app).get('/api/docs');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/html/);
+    expect(res.text).toContain('Coifili API');
+  });
+});
