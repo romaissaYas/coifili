@@ -3,6 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
+import { API_URL } from '@/lib/apiConfig';
+import { WILAYAS } from '@/lib/wilayas';
+import { communesDeWilaya } from '@/lib/communes';
+import ImageUpload from '@/components/common/ImageUpload';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -69,7 +73,7 @@ export default function RegisterPage() {
         salonData: form.userType === 'coiffeur' ? salonForm : undefined
       };
 
-      const res = await fetch('http://localhost:5000/register', {
+      const res = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyToSend),
@@ -89,7 +93,7 @@ export default function RegisterPage() {
       } else {
         setError(data.error || data.message || 'Erreur lors de l’inscription.');
       }
-    } catch (err) {
+    } catch {
       setError('Erreur serveur. Réessayez plus tard.');
     }
   };
@@ -154,11 +158,50 @@ export default function RegisterPage() {
               <input name="nom" placeholder="Nom du salon *" value={salonForm.nom} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
               <input name="email" placeholder="Email du salon *" value={salonForm.email} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
               <input name="telephone" placeholder="Téléphone du salon *" value={salonForm.telephone} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="wilaya" placeholder="Wilaya *" value={salonForm.wilaya} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="ville" placeholder="Ville *" value={salonForm.ville} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="type" placeholder="Type *" value={salonForm.type} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="categorie" placeholder="Catégorie *" value={salonForm.categorie} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="image" placeholder="Image *" value={salonForm.image} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
+              <select
+                name="wilaya"
+                value={salonForm.wilaya}
+                onChange={(e) => setSalonForm({ ...salonForm, wilaya: e.target.value, ville: '' })}
+                className="w-full border p-2 rounded mb-2"
+              >
+                <option value="">Wilaya *</option>
+                {WILAYAS.map((w) => (
+                  <option key={w.code} value={w.nom}>{w.code.toString().padStart(2, '0')} — {w.nom}</option>
+                ))}
+              </select>
+              <select
+                name="ville"
+                value={salonForm.ville}
+                onChange={handleSalonChange}
+                disabled={!salonForm.wilaya}
+                className="w-full border p-2 rounded mb-2 disabled:bg-gray-100"
+              >
+                <option value="">{salonForm.wilaya ? 'Ville *' : 'Choisir une wilaya d\'abord'}</option>
+                {communesDeWilaya(salonForm.wilaya).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select name="type" value={salonForm.type} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2">
+                <option value="">Type *</option>
+                <option value="femme">Femme</option>
+                <option value="homme">Homme</option>
+                <option value="mixte">Mixte</option>
+              </select>
+              <select name="categorie" value={salonForm.categorie} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2">
+                <option value="">Catégorie *</option>
+                <option value="coiffeur">Coiffeur</option>
+                <option value="barbier">Barbier</option>
+                <option value="manucure">Manucure</option>
+                <option value="institut">Institut</option>
+              </select>
+              <div className="mb-2">
+                <label className="mb-1 block text-sm font-medium text-gray-700">Image du salon *</label>
+                <ImageUpload
+                  value={salonForm.image}
+                  onChange={(url) => setSalonForm((f) => ({ ...f, image: url }))}
+                  endpoint={`${API_URL}/api/uploads/salon-image`}
+                />
+              </div>
               <input name="message" placeholder="Message" value={salonForm.message} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
             </div>
           )}

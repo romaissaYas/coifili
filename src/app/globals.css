@@ -24,3 +24,115 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ===========================================================================
+   Slider premium des salons (pages catégorie) — animations & thème Swiper.
+   Utilisé par SalonSlider / SalonCard / SalonsExplorer.
+   =========================================================================== */
+
+/* Apparition douce des cartes (staggerée via animation-delay en inline). */
+@keyframes cf-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cf-fade-in-up {
+  opacity: 0;
+  animation: cf-fade-in-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Skeleton loader (effet shimmer). */
+@keyframes cf-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.cf-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #ececf1;
+}
+
+.cf-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.6) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: cf-shimmer 1.4s infinite;
+}
+
+/* Thème rose des contrôles Swiper, limité au slider des salons (.cf-slider). */
+.cf-slider .swiper {
+  padding-bottom: 3rem;
+}
+
+.cf-slider .swiper-slide {
+  height: auto; /* cartes de hauteur égale (flex) */
+}
+
+.cf-slider .swiper-button-next,
+.cf-slider .swiper-button-prev {
+  color: #e11d67;
+  background: #ffffff;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cf-slider .swiper-button-next:hover,
+.cf-slider .swiper-button-prev:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 22px rgba(225, 29, 103, 0.28);
+}
+
+.cf-slider .swiper-button-next::after,
+.cf-slider .swiper-button-prev::after {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Sur mobile, on masque les flèches (l'utilisateur glisse au doigt) pour
+   éviter tout chevauchement avec le contenu des cartes. */
+@media (max-width: 639px) {
+  .cf-slider .swiper-button-next,
+  .cf-slider .swiper-button-prev {
+    display: none;
+  }
+}
+
+.cf-slider .swiper-pagination-bullet {
+  background: #d1a1b6;
+  opacity: 0.6;
+}
+
+.cf-slider .swiper-pagination-bullet-active {
+  background: #e11d67;
+  opacity: 1;
+  width: 1.4rem;
+  border-radius: 9999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-fade-in-up,
+  .cf-skeleton::after {
+    animation: none;
+  }
+  .cf-fade-in-up {
+    opacity: 1;
+  }
+}

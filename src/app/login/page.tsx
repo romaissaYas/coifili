@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { API_URL } from '@/lib/apiConfig';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -40,16 +41,17 @@ export default function LoginPage() {
 
 
 
-          if (data.user.userType === 'coiffeur') {
-              router.push('/espacecoiffeur'); // page pour les coiffeurs
-               } else {
-
-                  router.push('/'); // ou `http://localhost:3000` pour les utilisateurs classiques
-                  }
+          if (data.user.userType === 'super_admin') {
+            router.push('/admin'); // espace administrateur
+          } else if (data.user.userType === 'coiffeur') {
+            router.push('/espacecoiffeur'); // espace professionnel
+          } else {
+            router.push('/mon-compte'); // espace client
+          }
       } else {
         setError(data.error || 'Erreur lors de la connexion.');
       }
-    } catch (err) {
+    } catch {
       setError('Erreur serveur. Veuillez réessayer plus tard.');
     }
   };
@@ -89,7 +91,7 @@ export default function LoginPage() {
               required
             />
           </div>
-          <a href="/forgot-password" className="text-sm text-pink-600 underline">
+          <a href="/mot-de-passe-oublie" className="text-sm text-pink-600 underline">
             Mot de passe oublié ?
           </a>
           <button

@@ -1,38 +1,57 @@
-import express from 'express';
-import { pool } from '../serveur';
+import express, { Request, Response } from 'express';
+import { pool } from '../db/pool';
+import { authMiddleware, requireSalonOwnership, AuthenticatedRequest } from '../middleware/auth';
+import { validateBody, validateIdParam, prestationSchema } from '../validation';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
-// ➕ Ajout d'une prestation
-router.post('/', async (req, res): Promise<void> => {
+// 🌐 Prestations publiques d'un salon (parcours de réservation client).
+// Ne renvoie que des informations publiques (nom, prix, durée).
+router.get('/salon/:salonId', validateIdParam('salonId'), async (req: Request, res: Response): Promise<void> => {
   try {
-    const { nom, prix, salonId } = req.body;
-
-    // ✅ Vérification des champs
-    if (!nom || !prix || !salonId) {
-      res.status(400).json({ error: 'nom, prix et salonId sont requis' });
-      return;
-    }
-
-    await pool.execute(
-      'INSERT INTO prestations (nom, prix, salon_id) VALUES (?, ?, ?)',
-      [nom, prix, salonId]
+    const [rows] = await pool.execute(
+      'SELECT id, nom, prix, duree FROM prestations WHERE salon_id = ?',
+      [req.params.salonId]
     );
-
-    res.status(201).json({ message: 'Prestation ajoutée avec succès' });
+    res.status(200).json(rows);
   } catch (error) {
-    console.error('Erreur :', error);
+    logger.error({ err: error }, 'Erreur lors de la récupération des prestations publiques :');
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
 
-// 📋 Liste des prestations
-router.get('/', async (_req, res): Promise<void> => {
+// ➕ Ajout d'une prestation pour le salon de l'utilisateur authentifié
+router.post(
+  '/',
+  authMiddleware,
+  requireSalonOwnership,
+  validateBody(prestationSchema),
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+      const { nom, prix, duree } = req.body;
+
+      await pool.execute(
+        'INSERT INTO prestations (nom, prix, duree, salon_id) VALUES (?, ?, ?, ?)',
+        [nom, prix, duree, req.salonId]
+      );
+
+      res.status(201).json({ message: 'Prestation ajoutée avec succès' });
+    } catch (error) {
+      logger.error({ err: error }, 'Erreur :');
+      res.status(500).json({ error: 'Erreur serveur' });
+    }
+  }
+);
+
+// 📋 Liste des prestations du salon de l'utilisateur authentifié
+router.get('/', authMiddleware, requireSalonOwnership, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM prestations');
+    // On ne sélectionne que les colonnes utiles au frontend.
+    const [rows] = await pool.execute('SELECT id, nom, prix, duree FROM prestations WHERE salon_id = ?', [req.salonId]);
     res.status(200).json(rows);
   } catch (error) {
-    console.error('Erreur lors de la récupération des prestations :', error);
+    logger.error({ err: error }, 'Erreur lors de la récupération des prestations :');
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });

@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Swal from 'sweetalert2';
+import { API_URL } from '@/lib/apiConfig';
 
 
 export default function ProRegisterPage() {
@@ -35,7 +36,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       return;
     }
 
-    const response = await fetch(`http://localhost:5000/api/salons`, {
+    const response = await fetch(`${API_URL}/api/salons`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -228,7 +229,7 @@ const handleSubmit = async (e: React.FormEvent) => {
              onClick={() => router.push('/espacecoiffeur')}
             className="w-full bg-pink-600 text-white font-semibold py-2 rounded hover:bg-pink-700 transition"
           >
-        allez a l'espace coiffeur 
+        allez a l&apos;espace coiffeur
           </button>
       </div>
       <div
