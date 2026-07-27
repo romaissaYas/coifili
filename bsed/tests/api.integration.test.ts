@@ -54,6 +54,11 @@ describe('Authentification requise', () => {
     expect(res.status).toBe(401);
   });
 
+  it('GET /api/admin/notifications sans token → 401 (réservé admin)', async () => {
+    const res = await request(app).get('/api/admin/notifications');
+    expect(res.status).toBe(401);
+  });
+
   it('GET /api/users/me/export sans token → 401 (RGPD, protégé)', async () => {
     const res = await request(app).get('/api/users/me/export');
     expect(res.status).toBe(401);

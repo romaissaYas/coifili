@@ -18,6 +18,7 @@ import {
   Menu,
   X,
 } from 'lucide-react';
+import AdminNotificationBell from '@/components/admin/AdminNotificationBell';
 
 const LIENS = [
   { href: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, exact: true },
@@ -51,17 +52,23 @@ export default function AdminSidebar() {
       {/* Barre mobile */}
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3 md:hidden">
         <span className="text-xl font-extrabold tracking-wider text-rose-600">Coifili Admin</span>
-        <button onClick={() => setOpen((o) => !o)} aria-label="Menu" className="rounded-lg p-2 hover:bg-gray-100">
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        <div className="flex items-center gap-1">
+          <AdminNotificationBell />
+          <button onClick={() => setOpen((o) => !o)} aria-label="Menu" className="rounded-lg p-2 hover:bg-gray-100">
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       <aside
         className={`${open ? 'block' : 'hidden'} w-full shrink-0 border-r border-gray-200 bg-white md:sticky md:top-0 md:block md:h-screen md:w-64`}
       >
-        <div className="hidden px-6 py-5 md:block">
-          <span className="text-2xl font-extrabold tracking-wider text-rose-600">Coifili</span>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Administration</p>
+        <div className="hidden items-center justify-between px-6 py-5 md:flex">
+          <div>
+            <span className="text-2xl font-extrabold tracking-wider text-rose-600">Coifili</span>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Administration</p>
+          </div>
+          <AdminNotificationBell />
         </div>
 
         <nav className="flex flex-col gap-1 p-3">

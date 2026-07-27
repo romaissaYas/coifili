@@ -42,11 +42,31 @@ export async function creerNotificationReservation(input: NotificationReservatio
   );
 }
 
+/**
+ * Crée une notification GÉNÉRIQUE pour un salon (titre/message/lien) — ex.
+ * « paiement validé ». Réutilise la table `notifications` (colonnes génériques)
+ * et la même cloche que les réservations. Fire-and-forget côté appelant.
+ */
+export async function creerNotificationSalon(input: {
+  salonId: number;
+  type: string;
+  titre: string;
+  message: string;
+  lien?: string | null;
+}): Promise<void> {
+  await pool.execute(
+    `INSERT INTO notifications (salon_id, type, titre, message, lien)
+     VALUES (?, ?, ?, ?, ?)`,
+    [input.salonId, input.type, input.titre, input.message, input.lien ?? null]
+  );
+}
+
 /** Liste les notifications d'un salon, de la plus récente à la plus ancienne. */
 export async function listerNotifications(salonId: number, limit = 50) {
   const lim = Math.min(Math.max(1, limit | 0), 200); // borne sûre, valeur serveur -> inlining sans risque
   const [rows] = await pool.query(
-    `SELECT id, type, rendezvous_id, reference, client_nom, prestation_nom, date_rdv, heure_rdv, lu, created_at
+    `SELECT id, type, rendezvous_id, reference, client_nom, prestation_nom, date_rdv, heure_rdv,
+            titre, message, lien, lu, created_at
      FROM notifications
      WHERE salon_id = ?
      ORDER BY created_at DESC, id DESC

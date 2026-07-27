@@ -4,6 +4,8 @@ import { getPaymentProvider } from './payment';
 import { envoyerEmail } from './emailService';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
+import { creerNotificationAdmin } from './adminNotificationService';
+import { creerNotificationSalon } from './notificationSalonService';
 
 /**
  * Système d'abonnement payant (plans / souscriptions / paiements).
@@ -40,6 +42,29 @@ function notifierSalon(salonId: number, sujet: string, message: string): void {
       await envoyerEmail({ to: salon.email, subject: `Coifili — ${sujet}`, html });
     } catch (e) {
       logger.error({ err: e }, '[abonnement] email échoué :');
+    }
+  })();
+}
+
+/**
+ * Notifie l'administrateur d'une nouvelle demande d'abonnement (in-app).
+ * Fire-and-forget : n'interrompt jamais la souscription.
+ */
+function notifierAdminNouvelleDemande(salonId: number, planNom: string): void {
+  void (async () => {
+    try {
+      const [rows]: any = await pool.query('SELECT nom FROM salons WHERE id = ?', [salonId]);
+      const nom = rows[0]?.nom ?? `Salon #${salonId}`;
+      await creerNotificationAdmin({
+        type: 'nouvelle_demande',
+        titre: "Nouvelle demande d'abonnement",
+        message: `Le salon « ${nom} » a effectué une demande d'abonnement (${planNom}). Merci de vérifier le paiement et de valider la demande.`,
+        lien: '/admin/abonnements',
+        refType: 'salon',
+        refId: salonId,
+      });
+    } catch (e) {
+      logger.error({ err: e }, '[abonnement] notif admin échouée');
     }
   })();
 }
@@ -102,6 +127,9 @@ export async function souscrire(salonId: number, planId: number, methode: Method
       : `Votre demande d'abonnement au plan <b>${plan.nom}</b> est enregistrée. Réglez par carte via le lien de paiement fourni.`
   );
 
+  // Notifie l'administrateur (in-app) qu'une demande est à traiter.
+  notifierAdminNouvelleDemande(salonId, plan.nom);
+
   return {
     subscriptionId,
     paymentId,
@@ -139,6 +167,16 @@ export async function activerAbonnement(subscriptionId: number, adminId?: number
   });
 
   notifierSalon(sub.salon_id, 'Abonnement activé', `Votre abonnement <b>${plan.nom}</b> est actif jusqu'au <b>${fin}</b>. Votre salon est de nouveau visible et peut recevoir des réservations.`);
+
+  // Notification in-app (cloche Espace Coiffure) — fire-and-forget.
+  void creerNotificationSalon({
+    salonId: sub.salon_id,
+    type: 'paiement_valide',
+    titre: 'Paiement validé',
+    message: "Votre paiement a été validé par l'administration. Votre abonnement est désormais actif.",
+    lien: '/espacecoiffeur',
+  }).catch((e) => logger.error({ err: e }, '[abonnement] notif salon in-app échouée'));
+
   return getAbonnementSalon(sub.salon_id);
 }
 

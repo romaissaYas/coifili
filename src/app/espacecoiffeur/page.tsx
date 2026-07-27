@@ -12,7 +12,9 @@ import {
   CreditCard,
   Menu,
   X,
+  LogOut,
 } from 'lucide-react';
+import { logout } from '@/lib/logout';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useHoraires } from '@/hooks/useHoraires';
 import { usePrestations } from '@/hooks/usePrestations';
@@ -133,6 +135,13 @@ export default function EspaceCoiffeur() {
             <p className="truncate text-xs text-slate-400">Salon #{user.salonId}</p>
           </div>
         </div>
+        <button
+          onClick={() => logout()}
+          className="mt-2 flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+        >
+          <LogOut size={18} className="text-slate-400" />
+          Déconnexion
+        </button>
       </div>
     </div>
   );

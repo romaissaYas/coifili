@@ -14,6 +14,9 @@ export type NotificationSalon = {
   prestation_nom: string | null;
   date_rdv: string | null;
   heure_rdv: string | null;
+  titre: string | null;
+  message: string | null;
+  lien: string | null;
   lu: number; // 0 | 1
   created_at: string;
 };

@@ -17,6 +17,7 @@ import * as adminReservationController from '../controllers/adminReservationCont
 import * as adminDashboardController from '../controllers/adminDashboardController';
 import * as adminEmployeController from '../controllers/adminEmployeController';
 import * as abonnementController from '../controllers/abonnementController';
+import * as adminNotificationController from '../controllers/adminNotificationController';
 
 const router = express.Router();
 
@@ -75,5 +76,10 @@ router.delete('/reservations/:id', validateIdParam('id'), adminReservationContro
 // --- Gestion des employés (Phase 5) ---
 router.get('/employes', adminEmployeController.lister);
 router.delete('/employes/:id', validateIdParam('id'), adminEmployeController.supprimer);
+
+// --- Notifications de l'administrateur ---
+router.get('/notifications', adminNotificationController.lister);
+router.patch('/notifications/read-all', adminNotificationController.marquerToutesLues);
+router.patch('/notifications/:id/read', validateIdParam('id'), adminNotificationController.marquerLue);
 
 export default router;

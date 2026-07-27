@@ -285,6 +285,26 @@ export async function initializeDb(): Promise<void> {
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         `);
 
+        // Notifications in-app destinées à l'ADMINISTRATEUR (ex. nouvelle
+        // demande d'abonnement d'un salon). Table isolée : n'impacte pas les
+        // notifications salon existantes. `ref_type`/`ref_id` permettent un lien
+        // contextuel (ex. le salon concerné) sans couplage fort.
+        await conn.execute(`
+          CREATE TABLE IF NOT EXISTS admin_notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            type VARCHAR(40) NOT NULL DEFAULT 'information',
+            titre VARCHAR(150) NOT NULL,
+            message VARCHAR(500) NOT NULL,
+            lien VARCHAR(255) NULL,
+            ref_type VARCHAR(40) NULL,
+            ref_id INT NULL,
+            lu TINYINT(1) NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_admin_notif_lu (lu),
+            INDEX idx_admin_notif_date (created_at)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        `);
+
         // La table rendezvous existait déjà avec un schéma minimal avant P4.
         // Cette étape amène toute base existante (dev ou déjà déployée) au
         // nouveau modèle complet, de façon idempotente (sûre à rejouer à
@@ -323,6 +343,9 @@ export async function initializeDb(): Promise<void> {
         // Mise en évidence des nouvelles réservations non encore consultées par
         // le coiffeur (fond vert dans le tableau). Idempotent + rétro-remplissage.
         await migrateReservationVue(conn);
+
+        // Notifications génériques (titre/message/lien) sur la table salon.
+        await migrateNotificationsGeneriques(conn);
 
         logger.info('Database initialized');
       } finally {
@@ -515,6 +538,25 @@ async function migrateReservationVue(conn: PoolConnection): Promise<void> {
   if (!(await columnExists(conn, 'rendezvous', 'vue_coiffeur'))) {
     await conn.execute('ALTER TABLE rendezvous ADD COLUMN vue_coiffeur TINYINT(1) NOT NULL DEFAULT 0');
     await conn.execute('UPDATE rendezvous SET vue_coiffeur = 1');
+  }
+}
+
+/**
+ * Généralise la table `notifications` (salon) : colonnes optionnelles titre /
+ * message / lien, pour porter des notifications autres que « nouvelle
+ * réservation » (ex. « paiement validé ») dans la même cloche. Additif et
+ * idempotent : les lignes de réservation existantes gardent ces colonnes NULL
+ * et continuent de s'afficher exactement comme avant.
+ */
+async function migrateNotificationsGeneriques(conn: PoolConnection): Promise<void> {
+  if (!(await columnExists(conn, 'notifications', 'titre'))) {
+    await conn.execute('ALTER TABLE notifications ADD COLUMN titre VARCHAR(150) NULL');
+  }
+  if (!(await columnExists(conn, 'notifications', 'message'))) {
+    await conn.execute('ALTER TABLE notifications ADD COLUMN message VARCHAR(500) NULL');
+  }
+  if (!(await columnExists(conn, 'notifications', 'lien'))) {
+    await conn.execute('ALTER TABLE notifications ADD COLUMN lien VARCHAR(255) NULL');
   }
 }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Bell, CalendarCheck, Check } from 'lucide-react';
+import { Bell, CalendarCheck, Check, CreditCard, Info } from 'lucide-react';
 import { useNotifications, type NotificationSalon } from '@/hooks/useNotifications';
 
 const hCourte = (h: string | null) => (h ?? '').slice(0, 5);
@@ -18,25 +18,37 @@ function tempsRelatif(iso: string): string {
 
 function Ligne({ n, onLue }: { n: NotificationSalon; onLue: (id: number) => void }) {
   const dateRdv = n.date_rdv ? new Date(`${n.date_rdv}T00:00:00`).toLocaleDateString('fr-FR') : '';
+  const estReservation = n.type === 'nouvelle_reservation';
+
+  // Icône adaptée au type de notification.
+  const Icone = estReservation ? CalendarCheck : n.type === 'paiement_valide' ? CreditCard : Info;
+  const titre = estReservation ? 'Nouvelle réservation' : n.titre || 'Notification';
+
   return (
     <button
       onClick={() => !n.lu && onLue(n.id)}
       className={`flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 ${n.lu ? 'opacity-70' : 'bg-rose-50/40'}`}
     >
       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-        <CalendarCheck className="h-4 w-4" />
+        <Icone className="h-4 w-4" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold text-slate-800">Nouvelle réservation</span>
+          <span className="text-sm font-semibold text-slate-800">{titre}</span>
           <span className="shrink-0 text-[11px] text-slate-400">{tempsRelatif(n.created_at)}</span>
         </span>
-        <span className="mt-0.5 block truncate text-sm text-slate-600">
-          {n.client_nom || 'Client'}{n.prestation_nom ? ` — ${n.prestation_nom}` : ''}
-        </span>
-        <span className="mt-0.5 block text-xs text-slate-400">
-          {dateRdv}{n.heure_rdv ? ` à ${hCourte(n.heure_rdv)}` : ''}
-        </span>
+        {estReservation ? (
+          <>
+            <span className="mt-0.5 block truncate text-sm text-slate-600">
+              {n.client_nom || 'Client'}{n.prestation_nom ? ` — ${n.prestation_nom}` : ''}
+            </span>
+            <span className="mt-0.5 block text-xs text-slate-400">
+              {dateRdv}{n.heure_rdv ? ` à ${hCourte(n.heure_rdv)}` : ''}
+            </span>
+          </>
+        ) : (
+          <span className="mt-0.5 block text-sm text-slate-600">{n.message}</span>
+        )}
       </span>
       {!n.lu && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500" aria-label="Non lue" />}
     </button>
