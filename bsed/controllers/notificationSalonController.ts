@@ -22,12 +22,39 @@ export async function lister(req: AuthenticatedRequest, res: Response): Promise<
   }
 }
 
+/** Centre de notifications : liste paginée + filtres + tri. */
+export async function listerPage(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const { type, statut, q, tri, page, limit } = req.query;
+    const data = await service.listerNotificationsPage(req.salonId!, {
+      type: typeof type === 'string' ? type : undefined,
+      statut: typeof statut === 'string' ? statut : undefined,
+      q: typeof q === 'string' ? q : undefined,
+      tri: typeof tri === 'string' ? tri : undefined,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
+    res.json(data);
+  } catch (e) {
+    fail(res, e, 'listerPage');
+  }
+}
+
 export async function marquerLue(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     await service.marquerLue(req.salonId!, Number(req.params.id));
     res.json({ ok: true });
   } catch (e) {
     fail(res, e, 'marquerLue');
+  }
+}
+
+export async function supprimer(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    await service.supprimerNotification(req.salonId!, Number(req.params.id));
+    res.json({ ok: true });
+  } catch (e) {
+    fail(res, e, 'supprimer');
   }
 }
 

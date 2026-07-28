@@ -10,7 +10,9 @@ const router = express.Router();
 router.use(authMiddleware, requireSalonOwnership);
 
 router.get('/', controller.lister);
+router.get('/page', controller.listerPage); // centre de notifications (paginé/filtré)
 router.patch('/read-all', controller.marquerToutesLues);
 router.patch('/:id/read', validateIdParam('id'), controller.marquerLue);
+router.delete('/:id', validateIdParam('id'), controller.supprimer);
 
 export default router;

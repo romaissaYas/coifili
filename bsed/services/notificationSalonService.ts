@@ -1,4 +1,5 @@
 import { pool } from '../db/pool';
+import { enveloppe, type Paginated } from '../utils/pagination';
 
 /**
  * Notifications in-app de l'Espace Coiffure.
@@ -90,4 +91,55 @@ export async function marquerLue(salonId: number, id: number): Promise<void> {
 /** Marque toutes les notifications du salon comme lues. */
 export async function marquerToutesLues(salonId: number): Promise<void> {
   await pool.execute('UPDATE notifications SET lu = 1 WHERE salon_id = ? AND lu = 0', [salonId]);
+}
+
+/** Supprime UNE notification (uniquement si elle appartient au salon). */
+export async function supprimerNotification(salonId: number, id: number): Promise<void> {
+  await pool.execute('DELETE FROM notifications WHERE id = ? AND salon_id = ?', [id, salonId]);
+}
+
+/** Ordre de tri sûr (whitelist) pour le centre de notifications. */
+function ordreTri(tri?: string): string {
+  return tri === 'ancien' ? 'created_at ASC, id ASC' : 'created_at DESC, id DESC';
+}
+
+/**
+ * Centre de notifications du salon : liste paginée + filtres (type, statut
+ * lu/non-lu, recherche) + tri. Additif : n'affecte ni la cloche ni le compteur.
+ */
+export async function listerNotificationsPage(
+  salonId: number,
+  filtres: { type?: string; statut?: string; q?: string; tri?: string; page?: number; limit?: number }
+): Promise<Paginated<any>> {
+  const conditions: string[] = ['salon_id = ?'];
+  const values: any[] = [salonId];
+
+  if (filtres.type) {
+    conditions.push('type = ?');
+    values.push(filtres.type);
+  }
+  if (filtres.statut === 'lu' || filtres.statut === 'non_lu') {
+    conditions.push('lu = ?');
+    values.push(filtres.statut === 'lu' ? 1 : 0);
+  }
+  if (filtres.q) {
+    conditions.push('(client_nom LIKE ? OR prestation_nom LIKE ? OR titre LIKE ? OR message LIKE ? OR reference LIKE ?)');
+    const like = `%${filtres.q}%`;
+    values.push(like, like, like, like, like);
+  }
+
+  const where = `WHERE ${conditions.join(' AND ')}`;
+  const orderBy = ordreTri(filtres.tri);
+  const page = filtres.page && filtres.page >= 1 ? Math.floor(filtres.page) : 1;
+  const limit = Math.min(filtres.limit && filtres.limit >= 1 ? Math.floor(filtres.limit) : 20, 100);
+  const offset = (page - 1) * limit;
+
+  const [[{ total }]]: any = await pool.query(`SELECT COUNT(*) AS total FROM notifications ${where}`, values);
+  const [rows]: any = await pool.query(
+    `SELECT id, type, rendezvous_id, reference, client_nom, prestation_nom, date_rdv, heure_rdv,
+            titre, message, lien, lu, created_at
+     FROM notifications ${where} ORDER BY ${orderBy} LIMIT ? OFFSET ?`,
+    [...values, limit, offset]
+  );
+  return enveloppe(rows, Number(total), page, limit);
 }

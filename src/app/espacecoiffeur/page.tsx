@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   LogOut,
+  Bell,
 } from 'lucide-react';
 import { logout } from '@/lib/logout';
 import { useAuthUser } from '@/hooks/useAuthUser';
@@ -29,6 +30,7 @@ import EmployesTab from '@/components/dashboard/tabs/EmployesTab';
 import ProduitsBoutiqueTab from '@/components/dashboard/tabs/ProduitsBoutiqueTab';
 import MonAbonnementTab from '@/components/dashboard/tabs/MonAbonnementTab';
 import ReservationsTab from '@/components/dashboard/tabs/ReservationsTab';
+import NotificationsTab from '@/components/dashboard/tabs/NotificationsTab';
 import NotificationBell from '@/components/dashboard/NotificationBell';
 import type { RendezVous } from '@/types/rendezvous';
 
@@ -40,6 +42,7 @@ const tabs = [
   { name: 'Prestations', icon: <Scissors size={20} />, key: 'prestations' },
   { name: 'Mes Produits', icon: <ShoppingBag size={20} />, key: 'boutique' },
   { name: 'Employés', icon: <Users size={20} />, key: 'employes' },
+  { name: 'Notifications', icon: <Bell size={20} />, key: 'notifications' },
   { name: 'Mon abonnement', icon: <CreditCard size={20} />, key: 'abonnement' },
 ];
 
@@ -241,6 +244,8 @@ export default function EspaceCoiffeur() {
           )}
 
           {activeTab === 'boutique' && <ProduitsBoutiqueTab />}
+
+          {activeTab === 'notifications' && <NotificationsTab />}
 
           {activeTab === 'abonnement' && <MonAbonnementTab />}
 

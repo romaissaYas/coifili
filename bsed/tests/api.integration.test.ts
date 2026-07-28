@@ -59,6 +59,21 @@ describe('Authentification requise', () => {
     expect(res.status).toBe(401);
   });
 
+  it('GET /api/notifications/page sans token → 401 (centre salon)', async () => {
+    const res = await request(app).get('/api/notifications/page');
+    expect(res.status).toBe(401);
+  });
+
+  it('DELETE /api/notifications/:id sans token → 401', async () => {
+    const res = await request(app).delete('/api/notifications/1');
+    expect(res.status).toBe(401);
+  });
+
+  it('DELETE /api/admin/notifications/:id sans token → 401', async () => {
+    const res = await request(app).delete('/api/admin/notifications/1');
+    expect(res.status).toBe(401);
+  });
+
   it('GET /api/users/me/export sans token → 401 (RGPD, protégé)', async () => {
     const res = await request(app).get('/api/users/me/export');
     expect(res.status).toBe(401);

@@ -79,7 +79,9 @@ router.delete('/employes/:id', validateIdParam('id'), adminEmployeController.sup
 
 // --- Notifications de l'administrateur ---
 router.get('/notifications', adminNotificationController.lister);
+router.get('/notifications/page', adminNotificationController.listerPage);
 router.patch('/notifications/read-all', adminNotificationController.marquerToutesLues);
 router.patch('/notifications/:id/read', validateIdParam('id'), adminNotificationController.marquerLue);
+router.delete('/notifications/:id', validateIdParam('id'), adminNotificationController.supprimer);
 
 export default router;
