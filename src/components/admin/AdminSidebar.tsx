@@ -65,12 +65,9 @@ export default function AdminSidebar() {
       <aside
         className={`${open ? 'block' : 'hidden'} w-full shrink-0 border-r border-gray-200 bg-white md:sticky md:top-0 md:block md:h-screen md:w-64`}
       >
-        <div className="hidden items-center justify-between px-6 py-5 md:flex">
-          <div>
-            <span className="text-2xl font-extrabold tracking-wider text-rose-600">Coifili</span>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Administration</p>
-          </div>
-          <AdminNotificationBell />
+        <div className="hidden px-6 py-5 md:block">
+          <span className="text-2xl font-extrabold tracking-wider text-rose-600">Coifili</span>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Administration</p>
         </div>
 
         <nav className="flex flex-col gap-1 p-3">
@@ -92,6 +89,7 @@ export default function AdminSidebar() {
             );
           })}
 
+          {/* Déconnexion : tout en bas du menu, juste après « Paramètres ». */}
           <button
             onClick={deconnexion}
             className="mt-2 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
