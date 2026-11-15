@@ -22,7 +22,9 @@ export const registerSchema: Schema = {
   email: { required: true, type: 'string', maxLength: 255, pattern: EMAIL_PATTERN, message: 'doit être une adresse email valide.' },
   phone: { required: true, type: 'string', maxLength: 20, pattern: PHONE_PATTERN, message: 'doit être un numéro de téléphone valide.' },
   password: { required: true, type: 'string', maxLength: 72, validate: (v) => typeof v === 'string' && v.length >= 6, message: 'doit contenir au moins 6 caractères.' },
-  userType: { required: true, type: 'string', enum: ['coiffeur', 'user'] },
+  // Inscription publique = CLIENT uniquement. La création de salons (compte
+  // coiffeur) est réservée à l'administration (POST /api/admin/salons).
+  userType: { required: true, type: 'string', enum: ['user'] },
 };
 
 export const loginSchema: Schema = {
@@ -58,6 +60,88 @@ export const changePasswordSchema: Schema = {
 // mot de passe actuel pour confirmer l'identité avant une action irréversible.
 export const deleteAccountSchema: Schema = {
   password: { required: true, type: 'string', maxLength: 72 },
+};
+
+// Module Marketing Instagram — publication feed. Additif, réservé au super admin.
+export const IG_STATUTS = ['brouillon', 'programme', 'publie'] as const;
+export const igPostSchema: Schema = {
+  titre: { required: true, type: 'string', maxLength: 150 },
+  image_url: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  galerie: { required: false, type: 'array', validate: isSafeImageArray, message: 'ne doit contenir que des URLs http(s) ou des chemins valides.' },
+  image_prompt: { required: false, type: 'string', maxLength: 5000 },
+  legende: { required: false, type: 'string', maxLength: 5000 },
+  hashtags: { required: false, type: 'string', maxLength: 2000 },
+  emojis: { required: false, type: 'string', maxLength: 255 },
+  cta: { required: false, type: 'string', maxLength: 255 },
+  statut: { required: false, type: 'string', enum: IG_STATUTS },
+  date_publication: { required: false, type: 'string', maxLength: 40 },
+};
+
+export const igReelSchema: Schema = {
+  titre: { required: false, type: 'string', maxLength: 150 },
+  video_url: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  miniature_url: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  legende: { required: false, type: 'string', maxLength: 5000 },
+  hashtags: { required: false, type: 'string', maxLength: 2000 },
+  musique: { required: false, type: 'string', maxLength: 255 },
+  duree: { required: false, type: 'number', min: 0, max: 600 },
+  statut: { required: false, type: 'string', enum: IG_STATUTS },
+  date_publication: { required: false, type: 'string', maxLength: 40 },
+};
+
+export const igStorySchema: Schema = {
+  highlight_id: { required: false, type: 'number', validate: isValidId, message: 'doit être un identifiant valide.' },
+  categorie: { required: false, type: 'string', maxLength: 40 },
+  image_url: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  video_url: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  texte: { required: false, type: 'string', maxLength: 2000 },
+  sticker: { required: false, type: 'string', maxLength: 255 },
+  lien: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  ordre: { required: false, type: 'number', min: 0, max: 9999 },
+  statut: { required: false, type: 'string', enum: IG_STATUTS },
+  date_publication: { required: false, type: 'string', maxLength: 40 },
+};
+
+export const igHighlightSchema: Schema = {
+  cle: { required: true, type: 'string', maxLength: 40 },
+  titre: { required: true, type: 'string', maxLength: 100 },
+  cover_url: { required: false, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  ordre: { required: false, type: 'number', min: 0, max: 9999 },
+};
+
+export const IG_MEDIA_TYPES = ['image', 'video', 'logo', 'icon', 'cover'] as const;
+export const igMediaSchema: Schema = {
+  type: { required: true, type: 'string', enum: IG_MEDIA_TYPES },
+  url: { required: true, type: 'string', validate: isSafeImageRef, message: 'doit être une URL http(s) ou un chemin valide.' },
+  titre: { required: false, type: 'string', maxLength: 150 },
+  alt: { required: false, type: 'string', maxLength: 255 },
+  largeur: { required: false, type: 'number', min: 0, max: 100000 },
+  hauteur: { required: false, type: 'number', min: 0, max: 100000 },
+  taille: { required: false, type: 'number', min: 0, max: 999999999 },
+};
+
+export const igHashtagGroupSchema: Schema = {
+  nom: { required: true, type: 'string', maxLength: 100 },
+  tags: { required: true, type: 'string', maxLength: 2000 },
+};
+
+export const igSettingsSchema: Schema = {
+  meta_page_id: { required: false, type: 'string', maxLength: 100 },
+  ig_business_id: { required: false, type: 'string', maxLength: 100 },
+  ai_provider: { required: false, type: 'string', maxLength: 40 },
+};
+
+// Calendrier : reprogrammation (drag-and-drop) d'un contenu.
+export const igScheduleSchema: Schema = {
+  date: { required: true, type: 'string', maxLength: 40 },
+};
+
+// Génération IA.
+export const igAiGenerateSchema: Schema = {
+  theme: { required: true, type: 'string', maxLength: 300 },
+};
+export const igAiImageSchema: Schema = {
+  prompt: { required: true, type: 'string', maxLength: 2000 },
 };
 
 // Reprogrammation d'un rendez-vous par le client : seuls la date, l'heure et

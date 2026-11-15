@@ -9,6 +9,13 @@ import type {
   AuditLog,
   AbonnementInput,
 } from '@/types/admin';
+import type {
+  IgPost, IgPostInput, IgPostStats, Paginated,
+  IgReel, IgReelInput, IgStory, IgStoryInput, IgHighlight, IgHighlightInput,
+  IgMedia, IgMediaInput, IgHashtagGroup, IgHashtagGroupInput, IgSettings, IgSettingsInput,
+  IgCalendarItem, IgCalendarType, IgAiStatus, IgContenuGenere,
+  MetaConnection, MetaPage, MetaPublishResult,
+} from '@/types/marketing';
 
 /** Construit une query string à partir d'un objet (ignore les valeurs vides). */
 function qs(params?: Record<string, string | number | undefined>): string {
@@ -122,4 +129,79 @@ export const adminApi = {
     adminFetch<{ message: string; expires: number; alertes: number }>('/subscriptions/run', {
       method: 'POST',
     }),
+
+  // --- Module Marketing Instagram — Publications ---
+  marketing: {
+    listPosts: (params?: { statut?: string; q?: string; tri?: string; page?: number; limit?: number }) =>
+      adminFetch<Paginated<IgPost>>(`/marketing/posts${qs(params)}`),
+    postStats: () => adminFetch<IgPostStats>('/marketing/posts/stats'),
+    getPost: (id: number) => adminFetch<IgPost>(`/marketing/posts/${id}`),
+    createPost: (body: IgPostInput) =>
+      adminFetch<IgPost>('/marketing/posts', { method: 'POST', body: JSON.stringify(body) }),
+    updatePost: (id: number, body: IgPostInput) =>
+      adminFetch<IgPost>(`/marketing/posts/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deletePost: (id: number) => adminFetch<{ message: string }>(`/marketing/posts/${id}`, { method: 'DELETE' }),
+    duplicatePost: (id: number) =>
+      adminFetch<IgPost>(`/marketing/posts/${id}/duplicate`, { method: 'POST' }),
+
+    // Reels
+    listReels: (params?: { statut?: string; q?: string; tri?: string; page?: number; limit?: number }) =>
+      adminFetch<Paginated<IgReel>>(`/marketing/reels${qs(params)}`),
+    createReel: (body: IgReelInput) => adminFetch<IgReel>('/marketing/reels', { method: 'POST', body: JSON.stringify(body) }),
+    updateReel: (id: number, body: IgReelInput) => adminFetch<IgReel>(`/marketing/reels/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteReel: (id: number) => adminFetch<{ message: string }>(`/marketing/reels/${id}`, { method: 'DELETE' }),
+    duplicateReel: (id: number) => adminFetch<IgReel>(`/marketing/reels/${id}/duplicate`, { method: 'POST' }),
+
+    // Stories
+    listStories: (params?: { highlight_id?: number; statut?: string; q?: string; page?: number; limit?: number }) =>
+      adminFetch<Paginated<IgStory>>(`/marketing/stories${qs(params)}`),
+    createStory: (body: IgStoryInput) => adminFetch<IgStory>('/marketing/stories', { method: 'POST', body: JSON.stringify(body) }),
+    updateStory: (id: number, body: IgStoryInput) => adminFetch<IgStory>(`/marketing/stories/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteStory: (id: number) => adminFetch<{ message: string }>(`/marketing/stories/${id}`, { method: 'DELETE' }),
+
+    // Stories à la une (highlights)
+    listHighlights: () => adminFetch<IgHighlight[]>('/marketing/highlights'),
+    createHighlight: (body: IgHighlightInput) => adminFetch<IgHighlight>('/marketing/highlights', { method: 'POST', body: JSON.stringify(body) }),
+    updateHighlight: (id: number, body: IgHighlightInput) => adminFetch<IgHighlight>(`/marketing/highlights/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteHighlight: (id: number) => adminFetch<{ message: string }>(`/marketing/highlights/${id}`, { method: 'DELETE' }),
+
+    // Médiathèque
+    listMedia: (params?: { type?: string; q?: string; page?: number; limit?: number }) =>
+      adminFetch<Paginated<IgMedia>>(`/marketing/media${qs(params)}`),
+    createMedia: (body: IgMediaInput) => adminFetch<IgMedia>('/marketing/media', { method: 'POST', body: JSON.stringify(body) }),
+    deleteMedia: (id: number) => adminFetch<{ message: string }>(`/marketing/media/${id}`, { method: 'DELETE' }),
+
+    // Hashtags
+    listHashtags: () => adminFetch<IgHashtagGroup[]>('/marketing/hashtags'),
+    createHashtag: (body: IgHashtagGroupInput) => adminFetch<IgHashtagGroup>('/marketing/hashtags', { method: 'POST', body: JSON.stringify(body) }),
+    updateHashtag: (id: number, body: IgHashtagGroupInput) => adminFetch<IgHashtagGroup>(`/marketing/hashtags/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+    deleteHashtag: (id: number) => adminFetch<{ message: string }>(`/marketing/hashtags/${id}`, { method: 'DELETE' }),
+
+    // Paramètres
+    getSettings: () => adminFetch<IgSettings>('/marketing/settings'),
+    updateSettings: (body: IgSettingsInput) => adminFetch<IgSettings>('/marketing/settings', { method: 'PUT', body: JSON.stringify(body) }),
+
+    // Calendrier éditorial
+    calendar: (from: string, to: string) => adminFetch<IgCalendarItem[]>(`/marketing/calendar${qs({ from, to })}`),
+    reschedule: (type: IgCalendarType, id: number, date: string) =>
+      adminFetch<{ type: string; id: number; date_publication: string; statut: string }>(
+        `/marketing/calendar/${type}/${id}`, { method: 'PATCH', body: JSON.stringify({ date }) }
+      ),
+
+    // Génération IA
+    aiStatus: () => adminFetch<IgAiStatus>('/marketing/ai/status'),
+    aiGenerate: (theme: string) => adminFetch<IgContenuGenere>('/marketing/ai/generate', { method: 'POST', body: JSON.stringify({ theme }) }),
+    aiImage: (prompt: string) => adminFetch<{ url: string }>('/marketing/ai/image', { method: 'POST', body: JSON.stringify({ prompt }) }),
+
+    // Connexion & publication Meta (Facebook + Instagram)
+    metaStatus: () => adminFetch<MetaConnection>('/marketing/meta/status'),
+    metaConnectUrl: () => adminFetch<{ url: string }>('/marketing/meta/connect-url'),
+    metaPages: () => adminFetch<MetaPage[]>('/marketing/meta/pages'),
+    metaSelectPage: (pageId: string) =>
+      adminFetch<{ message: string }>('/marketing/meta/select-page', { method: 'POST', body: JSON.stringify({ pageId }) }),
+    metaDisconnect: () => adminFetch<{ message: string }>('/marketing/meta/disconnect', { method: 'POST' }),
+    publishPost: (id: number) => adminFetch<{ meta_media_id: string }>(`/marketing/posts/${id}/publish`, { method: 'POST' }),
+    publishReseaux: (id: number, reseaux: { facebook?: boolean; instagram?: boolean }) =>
+      adminFetch<MetaPublishResult>(`/marketing/posts/${id}/publish-reseaux`, { method: 'POST', body: JSON.stringify(reseaux) }),
+  },
 };

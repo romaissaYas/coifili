@@ -9,6 +9,8 @@
     "seed:admin": "ts-node --transpile-only scripts/seedAdmin.ts",
     "seed:demo": "ts-node --transpile-only scripts/seedDemo.ts",
     "backup:db": "ts-node --transpile-only scripts/backupDb.ts",
+    "seed:instagram": "ts-node --transpile-only scripts/seedInstagram.ts",
+    "publish:instagram": "ts-node --transpile-only scripts/publishInstagram.ts",
     "normalize:salons": "ts-node --transpile-only scripts/normalizeSalons.ts",
     "test:email": "ts-node --transpile-only scripts/test-email.ts",
     "test": "vitest run",
@@ -31,7 +33,7 @@
     "multer": "^2.2.0",
     "mysql2": "^3.14.1",
     "node-cron": "^4.6.0",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^10.5.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0"
   },

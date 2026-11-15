@@ -26,7 +26,7 @@ router.get('/salon/:salonId', validateIdParam('salonId'), async (req: Request, r
 router.get('/', authMiddleware, requireSalonOwnership, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // On ne sélectionne que les colonnes utiles au frontend.
-    const [rows] = await pool.execute('SELECT id, nom, poste FROM employes WHERE salon_id = ?', [req.salonId]);
+    const [rows] = await pool.execute('SELECT id, nom, poste FROM employes WHERE salon_id = ?', [req.salonId!]);
     res.status(200).json(rows);
   } catch (error) {
     logger.error({ err: error }, 'Erreur :');
@@ -47,7 +47,7 @@ router.get('/stats', authMiddleware, requireSalonOwnership, async (req: Authenti
        LEFT JOIN rendezvous r ON r.employe_id = e.id AND r.statut != 'annule'
        WHERE e.salon_id = ?
        GROUP BY e.id, e.nom, e.poste`,
-      [req.salonId]
+      [req.salonId!]
     );
 
     const employesAvecDispo = await Promise.all(
@@ -75,7 +75,7 @@ router.post(
       const { nom, poste } = req.body as { nom: string; poste: string };
 
       const sql = 'INSERT INTO employes (nom, poste, salon_id) VALUES (?, ?, ?)';
-      await pool.execute(sql, [nom, poste, req.salonId]);
+      await pool.execute(sql, [nom, poste, req.salonId!]);
 
       res.status(201).json({ message: 'Employé ajouté avec succès' });
     } catch (error) {

@@ -4,7 +4,6 @@ import crypto from 'crypto';
 import { pool, withTransaction } from '../db/pool';
 import { env } from '../config/env';
 import { ServiceError } from '../utils/ServiceError';
-import { getValidationErrors, salonSchema } from '../validation';
 import { envoyerEmail } from './emailService';
 import { logger } from '../utils/logger';
 
@@ -45,19 +44,13 @@ type RegisterInput = {
  * la route ; seul salonData (imbriqué) est validé ici.
  */
 export async function registerUser(input: RegisterInput) {
-  const { firstName, lastName, email, phone, password, userType, salonData } = input;
+  const { firstName, lastName, email, phone, password, userType } = input;
 
-  // Validations préalables (hors transaction) : on échoue AVANT toute écriture
-  // si les données du salon manquent/sont invalides, ce qui — combiné à la
-  // transaction ci-dessous — élimine tout risque d'utilisateur orphelin.
-  if (userType === 'coiffeur') {
-    if (!salonData) {
-      throw new ServiceError(400, 'Les informations du salon sont obligatoires pour un coiffeur.');
-    }
-    const salonErrors = getValidationErrors(salonData, salonSchema);
-    if (Object.keys(salonErrors).length > 0) {
-      throw new ServiceError(400, 'Données du salon invalides.', salonErrors);
-    }
+  // Inscription publique = CLIENT uniquement. La création d'un salon (compte
+  // coiffeur) est réservée à l'administration (POST /api/admin/salons). On
+  // refuse donc tout userType autre que 'user', même en appel direct à l'API.
+  if (userType !== 'user') {
+    throw new ServiceError(403, "L'inscription des salons se fait via l'administration. Contactez l'équipe Coifili.");
   }
 
   const [existingUser]: any = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
@@ -67,27 +60,13 @@ export async function registerUser(input: RegisterInput) {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // user + salon dans une seule transaction : soit les deux sont créés, soit
-  // aucun (ROLLBACK automatique). Plus de compte orphelin sans salon.
+  // Création du compte client (transaction conservée pour cohérence/robustesse).
   const userId = await withTransaction(async (conn) => {
     const [result]: any = await conn.execute(
       'INSERT INTO users (firstName, lastName, email, phone, password, userType) VALUES (?, ?, ?, ?, ?, ?)',
       [firstName, lastName, email, phone, hashedPassword, userType]
     );
-    const newUserId = result.insertId;
-
-    if (userType === 'coiffeur' && salonData) {
-      const { nom, email: salonEmail, telephone, wilaya, ville, type, categorie, image, message } = salonData;
-      // Nouveau salon : créé EN ATTENTE de validation par un administrateur.
-      // Tant qu'il n'est pas `actif`, le propriétaire ne peut pas se connecter
-      // et le salon n'apparaît pas sur le site public.
-      await conn.execute(
-        `INSERT INTO salons (nom, email, telephone, wilaya, ville, type, categorie, image, message, userId, statut)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')`,
-        [nom, salonEmail, telephone, wilaya, ville, type, categorie, image ?? '', message ?? '', newUserId]
-      );
-    }
-    return newUserId;
+    return result.insertId;
   });
 
   const token = jwt.sign({ userId, userType }, env.jwtSecret, { expiresIn: env.jwtExpiresIn });

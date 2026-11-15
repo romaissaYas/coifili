@@ -18,6 +18,7 @@ import * as adminDashboardController from '../controllers/adminDashboardControll
 import * as adminEmployeController from '../controllers/adminEmployeController';
 import * as abonnementController from '../controllers/abonnementController';
 import * as adminNotificationController from '../controllers/adminNotificationController';
+import marketingRoutes from './marketing';
 
 const router = express.Router();
 
@@ -83,5 +84,8 @@ router.get('/notifications/page', adminNotificationController.listerPage);
 router.patch('/notifications/read-all', adminNotificationController.marquerToutesLues);
 router.patch('/notifications/:id/read', validateIdParam('id'), adminNotificationController.marquerLue);
 router.delete('/notifications/:id', validateIdParam('id'), adminNotificationController.supprimer);
+
+// --- Module Marketing Instagram (sous /api/admin/marketing) ---
+router.use('/marketing', marketingRoutes);
 
 export default router;

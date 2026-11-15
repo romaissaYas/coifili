@@ -4,9 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import { API_URL } from '@/lib/apiConfig';
-import { WILAYAS } from '@/lib/wilayas';
-import { communesDeWilaya } from '@/lib/communes';
-import ImageUpload from '@/components/common/ImageUpload';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,18 +14,6 @@ export default function RegisterPage() {
     phone: '',
     password: '',
     confirmPassword: '',
-    userType: '',
-  });
-  const [salonForm, setSalonForm] = useState({
-    nom: '',
-    email: '',
-    telephone: '',
-    wilaya: '',
-    ville: '',
-    type: '',
-    categorie: '',
-    image: '',
-    message: '',
   });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -37,18 +22,11 @@ export default function RegisterPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSalonChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setSalonForm({ ...salonForm, [e.target.name]: e.target.value });
-  };
-
   const validate = () => {
-    if (Object.values(form).some(v => !v)) return 'Veuillez remplir tous les champs.';
+    if (Object.values(form).some((v) => !v)) return 'Veuillez remplir tous les champs.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Email invalide.';
     if (form.password.length < 6) return 'Le mot de passe doit contenir au moins 6 caractères.';
     if (form.password !== form.confirmPassword) return 'Les mots de passe ne correspondent pas.';
-    if (!['coiffeur', 'user'].includes(form.userType)) return 'Type d’utilisateur invalide.';
-    // Validation salon si coiffeur
-    if (form.userType === 'coiffeur' && Object.values(salonForm).some(v => !v)) return 'Veuillez remplir tous les champs du salon.';
     return '';
   };
 
@@ -63,14 +41,15 @@ export default function RegisterPage() {
     }
 
     try {
+      // Inscription publique = CLIENT uniquement. Les salons sont créés
+      // exclusivement par l'administration (espace admin).
       const bodyToSend = {
         firstName: form.firstName,
         lastName: form.lastName,
         email: form.email,
         phone: form.phone,
         password: form.password,
-        userType: form.userType,
-        salonData: form.userType === 'coiffeur' ? salonForm : undefined
+        userType: 'user',
       };
 
       const res = await fetch(`${API_URL}/register`, {
@@ -86,7 +65,7 @@ export default function RegisterPage() {
           icon: 'success',
           title: 'Compte créé avec succès 🎉',
           text: 'Bienvenue sur Coifili !',
-          confirmButtonText: 'OK'
+          confirmButtonText: 'OK',
         }).then(() => {
           router.push('/login');
         });
@@ -141,70 +120,6 @@ export default function RegisterPage() {
             placeholder="Confirmer le mot de passe *"
             className="w-full border border-gray-300 rounded px-4 py-2"
             value={form.confirmPassword} onChange={handleChange} />
-
-          <select name="userType"
-            className="w-full border border-gray-300 rounded px-4 py-2"
-            value={form.userType} onChange={handleChange}>
-            <option value="">Sélectionnez un type *</option>
-            <option value="user">Utilisateur</option>
-            <option value="coiffeur">Coiffeur</option>
-          </select>
-
-          {/* Formulaire salon pour coiffeur */}
-          {form.userType === 'coiffeur' && (
-            <div className="mt-4 p-4 border rounded">
-              <h2 className="text-xl font-bold mb-2">Informations du salon</h2>
-
-              <input name="nom" placeholder="Nom du salon *" value={salonForm.nom} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="email" placeholder="Email du salon *" value={salonForm.email} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <input name="telephone" placeholder="Téléphone du salon *" value={salonForm.telephone} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-              <select
-                name="wilaya"
-                value={salonForm.wilaya}
-                onChange={(e) => setSalonForm({ ...salonForm, wilaya: e.target.value, ville: '' })}
-                className="w-full border p-2 rounded mb-2"
-              >
-                <option value="">Wilaya *</option>
-                {WILAYAS.map((w) => (
-                  <option key={w.code} value={w.nom}>{w.code.toString().padStart(2, '0')} — {w.nom}</option>
-                ))}
-              </select>
-              <select
-                name="ville"
-                value={salonForm.ville}
-                onChange={handleSalonChange}
-                disabled={!salonForm.wilaya}
-                className="w-full border p-2 rounded mb-2 disabled:bg-gray-100"
-              >
-                <option value="">{salonForm.wilaya ? 'Ville *' : 'Choisir une wilaya d\'abord'}</option>
-                {communesDeWilaya(salonForm.wilaya).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <select name="type" value={salonForm.type} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2">
-                <option value="">Type *</option>
-                <option value="femme">Femme</option>
-                <option value="homme">Homme</option>
-                <option value="mixte">Mixte</option>
-              </select>
-              <select name="categorie" value={salonForm.categorie} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2">
-                <option value="">Catégorie *</option>
-                <option value="coiffeur">Coiffeur</option>
-                <option value="barbier">Barbier</option>
-                <option value="manucure">Manucure</option>
-                <option value="institut">Institut</option>
-              </select>
-              <div className="mb-2">
-                <label className="mb-1 block text-sm font-medium text-gray-700">Image du salon *</label>
-                <ImageUpload
-                  value={salonForm.image}
-                  onChange={(url) => setSalonForm((f) => ({ ...f, image: url }))}
-                  endpoint={`${API_URL}/api/uploads/salon-image`}
-                />
-              </div>
-              <input name="message" placeholder="Message" value={salonForm.message} onChange={handleSalonChange} className="w-full border p-2 rounded mb-2" />
-            </div>
-          )}
 
           <button type="submit"
             className="w-full bg-pink-600 text-white font-semibold py-2 rounded hover:bg-pink-700 transition">

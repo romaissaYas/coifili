@@ -74,6 +74,41 @@ describe('Authentification requise', () => {
     expect(res.status).toBe(401);
   });
 
+  it('GET /api/admin/marketing/posts sans token → 401 (module Marketing)', async () => {
+    const res = await request(app).get('/api/admin/marketing/posts');
+    expect(res.status).toBe(401);
+  });
+
+  it('POST /api/admin/marketing/posts sans token → 401', async () => {
+    const res = await request(app).post('/api/admin/marketing/posts').send({ titre: 'x' });
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/admin/marketing/reels sans token → 401', async () => {
+    const res = await request(app).get('/api/admin/marketing/reels');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/admin/marketing/settings sans token → 401', async () => {
+    const res = await request(app).get('/api/admin/marketing/settings');
+    expect(res.status).toBe(401);
+  });
+
+  it('GET /api/admin/marketing/calendar sans token → 401', async () => {
+    const res = await request(app).get('/api/admin/marketing/calendar?from=2026-08-01&to=2026-09-01');
+    expect(res.status).toBe(401);
+  });
+
+  it('POST /api/admin/marketing/ai/generate sans token → 401', async () => {
+    const res = await request(app).post('/api/admin/marketing/ai/generate').send({ theme: 'x' });
+    expect(res.status).toBe(401);
+  });
+
+  it('POST /api/admin/marketing/posts/:id/publish sans token → 401 (Meta)', async () => {
+    const res = await request(app).post('/api/admin/marketing/posts/1/publish');
+    expect(res.status).toBe(401);
+  });
+
   it('GET /api/users/me/export sans token → 401 (RGPD, protégé)', async () => {
     const res = await request(app).get('/api/users/me/export');
     expect(res.status).toBe(401);

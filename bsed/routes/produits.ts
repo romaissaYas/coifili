@@ -45,7 +45,7 @@ router.post(
 router.get('/', authMiddleware, requireSalonOwnership, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     // On ne sélectionne que les colonnes utiles au frontend.
-    const [rows] = await pool.execute('SELECT id, nom, prix FROM produits WHERE salon_id = ?', [req.salonId]);
+    const [rows] = await pool.execute('SELECT id, nom, prix FROM produits WHERE salon_id = ?', [req.salonId!]);
     res.status(200).json(rows);
   } catch (error) {
     logger.error({ err: error }, 'Erreur :');

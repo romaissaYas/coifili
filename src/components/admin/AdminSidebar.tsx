@@ -15,6 +15,7 @@ import {
   ScrollText,
   Settings,
   Bell,
+  Megaphone,
   LogOut,
   Menu,
   X,
@@ -31,6 +32,7 @@ const LIENS = [
   { href: '/admin/reservations', label: 'Réservations', icon: CalendarCheck },
   { href: '/admin/notifications', label: 'Notifications', icon: Bell },
   { href: '/admin/statistiques', label: 'Statistiques', icon: BarChart3 },
+  { href: '/admin/marketing', label: 'Marketing', icon: Megaphone },
   { href: '/admin/journal', label: "Journal d'activité", icon: ScrollText },
   { href: '/admin/parametres', label: 'Paramètres', icon: Settings },
 ];

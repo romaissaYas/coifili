@@ -23,6 +23,7 @@ import reservationsRoutes from './routes/reservations';
 import uploadsRoutes from './routes/uploads';
 import notificationsRoutes from './routes/notifications';
 import docsRoutes from './routes/docs';
+import { metaCallback } from './controllers/marketingController';
 
 /**
  * Construit et configure l'application Express (sans l'écouter). Isolé de
@@ -87,6 +88,10 @@ app.use('/', authRoutes);
 
 // Documentation de l'API (publique, non limitée) : montée avant le rate limiter.
 app.use('/api', docsRoutes);
+
+// Callback OAuth Meta — PUBLIC (appelé par Facebook, sans JWT ; sécurisé par le
+// `state` signé). Monté hors du routeur admin JWT, avant les autres montages.
+app.get('/api/marketing/meta/callback', metaCallback);
 
 // Garde-fou de débit sur l'ensemble des routes /api (souple).
 app.use('/api', apiLimiter);

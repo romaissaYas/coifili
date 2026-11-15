@@ -18,8 +18,6 @@ export default function PublicFooter() {
         <div>
           <h3 className="mb-4 text-lg font-semibold">À propos de Coifili</h3>
           <ul className="space-y-2 text-sm text-gray-400">
-            <li><a href="/inscription">Je suis un professionnel de beauté</a></li>
-            <li><a href="/inscription">Rejoignez-nous</a></li>
             <li><a href="/cgu">CGU</a></li>
             <li><a href="/confidentialite">Politique de confidentialité</a></li>
             <li><a href="/confidentialite#cookies">Gestion des cookies</a></li>

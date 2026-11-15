@@ -347,6 +347,12 @@ export async function initializeDb(): Promise<void> {
         // Notifications génériques (titre/message/lien) sur la table salon.
         await migrateNotificationsGeneriques(conn);
 
+        // Module Marketing Instagram (tables isolées, préfixe ig_). Additif.
+        await migrateMarketingModule(conn);
+
+        // Connexion Meta (OAuth Facebook/Instagram) + résultats de publication.
+        await migrateMetaConnection(conn);
+
         logger.info('Database initialized');
       } finally {
         conn.release();
@@ -558,6 +564,181 @@ async function migrateNotificationsGeneriques(conn: PoolConnection): Promise<voi
   if (!(await columnExists(conn, 'notifications', 'lien'))) {
     await conn.execute('ALTER TABLE notifications ADD COLUMN lien VARCHAR(255) NULL');
   }
+}
+
+/**
+ * Module Marketing Instagram — tables isolées (préfixe `ig_`). Entièrement
+ * additif : n'altère aucune table existante. Idempotent (CREATE TABLE IF NOT
+ * EXISTS). Réservé au super administrateur côté API.
+ *
+ * - ig_media          : médiathèque (images, vidéos, logos, icônes, couvertures)
+ * - ig_posts          : publications feed
+ * - ig_reels          : reels
+ * - ig_highlights     : catégories de Stories à la une (À propos, FAQ…)
+ * - ig_stories        : stories (rattachables à une « à la une » via highlight_id)
+ * - ig_hashtag_groups : banques de hashtags réutilisables
+ * - ig_settings       : configuration (Meta / IA) — clés à renseigner plus tard
+ *
+ * Champs `statut` = brouillon | programme | publie. `date_publication` porte la
+ * programmation. `meta_media_id` réservé à la future publication via Meta.
+ */
+async function migrateMarketingModule(conn: PoolConnection): Promise<void> {
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_media (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      type ENUM('image','video','logo','icon','cover') NOT NULL DEFAULT 'image',
+      url VARCHAR(500) NOT NULL,
+      titre VARCHAR(150) NULL,
+      alt VARCHAR(255) NULL,
+      largeur INT NULL,
+      hauteur INT NULL,
+      taille INT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_ig_media_type (type),
+      INDEX idx_ig_media_date (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_posts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      titre VARCHAR(150) NOT NULL,
+      image_url VARCHAR(500) NULL,
+      galerie JSON NULL,
+      image_prompt TEXT NULL,
+      legende TEXT NULL,
+      hashtags TEXT NULL,
+      emojis VARCHAR(255) NULL,
+      cta VARCHAR(255) NULL,
+      statut ENUM('brouillon','programme','publie') NOT NULL DEFAULT 'brouillon',
+      date_publication DATETIME NULL,
+      meta_media_id VARCHAR(100) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_ig_posts_statut (statut),
+      INDEX idx_ig_posts_date (date_publication)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_reels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      titre VARCHAR(150) NULL,
+      video_url VARCHAR(500) NULL,
+      miniature_url VARCHAR(500) NULL,
+      legende TEXT NULL,
+      hashtags TEXT NULL,
+      musique VARCHAR(255) NULL,
+      duree INT NULL,
+      statut ENUM('brouillon','programme','publie') NOT NULL DEFAULT 'brouillon',
+      date_publication DATETIME NULL,
+      meta_media_id VARCHAR(100) NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_ig_reels_statut (statut),
+      INDEX idx_ig_reels_date (date_publication)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_highlights (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      cle VARCHAR(40) NOT NULL UNIQUE,
+      titre VARCHAR(100) NOT NULL,
+      cover_url VARCHAR(500) NULL,
+      ordre INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_stories (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      highlight_id INT NULL,
+      categorie VARCHAR(40) NULL,
+      image_url VARCHAR(500) NULL,
+      video_url VARCHAR(500) NULL,
+      texte TEXT NULL,
+      sticker VARCHAR(255) NULL,
+      lien VARCHAR(500) NULL,
+      ordre INT NOT NULL DEFAULT 0,
+      statut ENUM('brouillon','programme','publie') NOT NULL DEFAULT 'brouillon',
+      date_publication DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (highlight_id) REFERENCES ig_highlights(id) ON DELETE SET NULL,
+      INDEX idx_ig_stories_highlight (highlight_id),
+      INDEX idx_ig_stories_statut (statut)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_hashtag_groups (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      nom VARCHAR(100) NOT NULL,
+      tags TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS ig_settings (
+      id INT PRIMARY KEY DEFAULT 1,
+      meta_page_id VARCHAR(100) NULL,
+      ig_business_id VARCHAR(100) NULL,
+      ai_provider VARCHAR(40) NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  // Ligne de configuration unique (id=1). Les SECRETS (tokens Meta, clés IA) ne
+  // sont PAS stockés ici : ils proviennent de l'environnement (voir .env.example).
+  await conn.execute('INSERT IGNORE INTO ig_settings (id) VALUES (1)');
+}
+
+/**
+ * Connexion Meta (OAuth Facebook/Instagram) et journal de publication.
+ * Additif, idempotent.
+ *  - meta_connections : une connexion active (singleton logique). Le jeton est
+ *    CHIFFRÉ (AES-256-GCM) dans `access_token_enc` — jamais en clair. `statut`
+ *    = 'pending' (jeton utilisateur en attente de sélection de Page) ou
+ *    'connected' (jeton de Page + compte IG résolus).
+ *  - meta_publications : résultat par réseau (facebook/instagram) de chaque
+ *    tentative de publication (succès/échec, media_id, erreur détaillée).
+ */
+async function migrateMetaConnection(conn: PoolConnection): Promise<void> {
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS meta_connections (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      statut ENUM('pending','connected') NOT NULL DEFAULT 'pending',
+      token_type ENUM('user','page') NOT NULL DEFAULT 'user',
+      access_token_enc TEXT NOT NULL,
+      fb_page_id VARCHAR(64) NULL,
+      fb_page_name VARCHAR(255) NULL,
+      ig_business_id VARCHAR(64) NULL,
+      ig_username VARCHAR(255) NULL,
+      scopes TEXT NULL,
+      token_expires_at DATETIME NULL,
+      connected_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS meta_publications (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      post_id INT NOT NULL,
+      reseau ENUM('facebook','instagram') NOT NULL,
+      statut ENUM('succes','echec') NOT NULL,
+      media_id VARCHAR(100) NULL,
+      erreur TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_metapub_post (post_id),
+      FOREIGN KEY (post_id) REFERENCES ig_posts(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
 }
 
 /**
