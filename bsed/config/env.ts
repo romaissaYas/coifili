@@ -80,9 +80,16 @@ export const env = {
 
   db: {
     host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'gestion',
+    // SSL requis par certains hébergeurs managés (Aiven, Clever...). Activé via
+    // DB_SSL=true. `rejectUnauthorized: true` par défaut ; mettre DB_SSL_INSECURE
+    // =true seulement si l'hôte n'a pas de CA reconnue.
+    ...(process.env.DB_SSL === 'true'
+      ? { ssl: { rejectUnauthorized: process.env.DB_SSL_INSECURE !== 'true' } }
+      : {}),
   },
 
   jwtSecret: resolveJwtSecret(),
